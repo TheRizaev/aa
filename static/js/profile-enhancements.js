@@ -202,7 +202,7 @@ function initProfileImageHandling() {
             }
             
             .avatar-select-btn:hover {
-                background-color: #7d1e46;
+                background-color: #1f2f4a;
                 transform: translateY(-3px);
             }
 

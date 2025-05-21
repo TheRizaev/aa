@@ -56,7 +56,7 @@
 }
 
 .resume-yes:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
 }
 
 .resume-no:hover {
@@ -165,7 +165,7 @@
 }
 
 .next-play:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
 }
 
 .next-cancel:hover {
@@ -198,7 +198,7 @@
 }
 
 .shortcuts-toggle:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .shortcuts-panel {

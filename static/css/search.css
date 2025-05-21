@@ -21,7 +21,7 @@
     width: 100%;
     padding: 0.7rem 2.8rem 0.7rem 1.5rem;
     border-radius: 30px;
-    border: 2px solid rgba(159, 37, 88, 0.2);
+    border: 2px solid rgba(37, 39, 159, 0.2);
     outline: none;
     background-color: rgba(255, 255, 255, 0.1);
     color: inherit;
@@ -31,7 +31,7 @@
 
 .search-bar input:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.2);
 }
 
 .dark-theme .search-bar input {
@@ -40,7 +40,7 @@
 }
 
 .dark-theme .search-bar input:focus {
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
 }
 
 .search-button {
@@ -59,7 +59,7 @@
 }
 
 .search-button:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .search-dropdown {
@@ -73,14 +73,14 @@
     display: none;
     overflow: hidden;
     margin-top: 5px;
-    border: 1px solid rgba(159, 37, 88, 0.1);
+    border: 1px solid rgba(37, 39, 159, 0.1);
     animation: dropdownFadeIn 0.3s;
 }
 
 .dark-theme .search-dropdown {
     background-color: var(--medium-bg);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(159, 37, 88, 0.2);
+    border: 1px solid rgba(37, 39, 159, 0.2);
 }
 
 .search-dropdown.show {
@@ -97,12 +97,12 @@
 }
 
 .search-result:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     border-left-color: var(--primary-color);
 }
 
 .dark-theme .search-result:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .search-result .search-thumbnail {
@@ -149,17 +149,17 @@
     text-align: center;
     font-weight: bold;
     cursor: pointer;
-    border-top: 1px solid rgba(159, 37, 88, 0.2);
+    border-top: 1px solid rgba(37, 39, 159, 0.2);
     color: var(--primary-color);
     transition: background-color 0.3s;
 }
 
 .search-more:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .search-more:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 /* Страница поиска */
@@ -193,7 +193,7 @@
     display: flex;
     gap: 25px;
     margin-bottom: 30px;
-    border-bottom: 2px solid rgba(159, 37, 88, 0.2);
+    border-bottom: 2px solid rgba(37, 39, 159, 0.2);
     padding-bottom: 10px;
 }
 
@@ -248,11 +248,11 @@
 
 .search-result-item:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 10px 25px rgba(37, 39, 159, 0.2);
 }
 
 .dark-theme .search-result-item:hover {
-    box-shadow: 0 10px 25px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 10px 25px rgba(37, 39, 159, 0.3);
 }
 
 .result-thumbnail {
@@ -326,7 +326,7 @@
     padding: 50px 20px;
     background-color: rgba(159, 37, 88, 0.05);
     border-radius: 15px;
-    border: 1px solid rgba(159, 37, 88, 0.1);
+    border: 1px solid rgba(37, 39, 159, 0.1);
 }
 
 .no-results h3 {

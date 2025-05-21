@@ -143,7 +143,7 @@
 }
 
 .control-button:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .control-button.active {
@@ -218,7 +218,7 @@
 }
 
 .settings-item:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .playback-speed-options {

@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 justify-content: space-between;
                 align-items: center;
                 padding: 15px 20px;
-                border-bottom: 1px solid rgba(159, 37, 88, 0.1);
+                border-bottom: 1px solid rgba(37, 39, 159, 0.1);
             }
             
             .share-popup-header h3 {
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .share-url {
                 flex-grow: 1;
                 padding: 10px 15px;
-                border: 1px solid rgba(159, 37, 88, 0.2);
+                border: 1px solid rgba(37, 39, 159, 0.2);
                 border-radius: 8px 0 0 8px;
                 font-size: 14px;
                 color: inherit;
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             .copy-url-btn:hover {
-                background-color: #7d1e46;
+                background-color: #1f2f4a;
             }
             
             .share-popup-title {
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 width: 40px;
                 height: 40px;
                 border-radius: 50%;
-                background-color: rgba(159, 37, 88, 0.1);
+                background-color: rgba(37, 39, 159, 0.1);
                 transition: all 0.3s;
             }
             
@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 height: 80px;
                 padding: 10px;
                 margin-bottom: 10px;
-                border: 1px solid rgba(159, 37, 88, 0.2);
+                border: 1px solid rgba(37, 39, 159, 0.2);
                 border-radius: 8px;
                 resize: none;
                 font-family: monospace;
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             .copy-embed-btn:hover {
-                background-color: rgba(159, 37, 88, 0.1);
+                background-color: rgba(37, 39, 159, 0.1);
                 transform: translateY(-2px);
             }
             

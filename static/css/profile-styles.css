@@ -20,7 +20,7 @@
 
 .light-theme .profile-header {
     background-color: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.1);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .profile-header {
@@ -39,7 +39,7 @@
     align-items: center;
     justify-content: center;
     position: relative;
-    box-shadow: 0 8px 20px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 8px 20px rgba(37, 39, 159, 0.3);
 }
 
 .profile-avatar img {
@@ -76,7 +76,7 @@
 
 .light-theme .profile-section {
     background-color: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.1);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .profile-section {
@@ -87,7 +87,7 @@
 .profile-section h3 {
     margin-top: 0;
     padding-bottom: 15px;
-    border-bottom: 2px solid rgba(159, 37, 88, 0.2);
+    border-bottom: 2px solid rgba(37, 39, 159, 0.2);
     color: var(--primary-color);
 }
 
@@ -111,7 +111,7 @@
     width: 100%;
     padding: 12px 15px;
     border-radius: 8px;
-    border: 2px solid rgba(159, 37, 88, 0.2);
+    border: 2px solid rgba(37, 39, 159, 0.2);
     background-color: rgba(255, 255, 255, 0.1);
     font-size: 16px;
     color: inherit;
@@ -128,7 +128,7 @@
 .profile-form textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 0 0 3px rgba(37, 39, 159, 0.2);
 }
 
 .profile-form .form-help {
@@ -153,11 +153,11 @@
     cursor: pointer;
     transition: all 0.3s;
     margin-top: 20px;
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
 }
 
 .profile-save-button:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
 }
@@ -188,7 +188,7 @@
     margin-right: 20px;
     background-color: var(--accent-color);
     position: relative;
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -223,7 +223,7 @@
 }
 
 .avatar-change:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
     transform: translateY(-3px);
 }
 
@@ -272,7 +272,7 @@
 
 .stat-card:hover {
     transform: translateY(-5px);
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .stat-icon {
@@ -309,7 +309,7 @@
 }
 
 .btn-primary:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
     transform: translateY(-3px);
 }
 
@@ -320,7 +320,7 @@
 }
 
 .btn-secondary:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     transform: translateY(-3px);
 }
 
@@ -424,7 +424,7 @@
 }
 
 .setting-action-btn:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     transform: translateY(-2px);
 }
 

@@ -15,7 +15,7 @@
     background-color: rgba(159, 37, 88, 0.05);
     padding: 40px;
     border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 10px 30px rgba(37, 39, 159, 0.2);
     position: relative;
     z-index: 1;
     animation: fadeIn 1s ease;
@@ -74,13 +74,13 @@
     text-decoration: none;
     font-weight: bold;
     transition: all 0.3s;
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
 }
 
 .error-button:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
 }
 
 /* Background decoration */

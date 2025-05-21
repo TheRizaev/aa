@@ -184,11 +184,11 @@
 <style>
 /* Placeholder styles */
 .placeholder-thumbnail {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .placeholder-thumbnail {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .placeholder-thumbnail-inner {
@@ -199,51 +199,51 @@
 .placeholder-title {
     height: 24px;
     width: 80%;
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     margin-bottom: 10px;
 }
 
 .dark-theme .placeholder-title {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .placeholder-meta {
     height: 16px;
     width: 60%;
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     margin-bottom: 10px;
 }
 
 .dark-theme .placeholder-meta {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .placeholder-avatar {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .placeholder-avatar {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .placeholder-channel {
     height: 16px;
     width: 40%;
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .placeholder-channel {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .placeholder-description {
     height: 32px;
     width: 100%;
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .placeholder-description {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 /* Search suggestions */
@@ -255,7 +255,7 @@
 }
 
 .dark-theme .search-suggestions {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .suggestion-tags {
@@ -267,7 +267,7 @@
 
 .suggestion-tag {
     padding: 8px 15px;
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     border-radius: 20px;
     color: var(--primary-color);
     text-decoration: none;
@@ -275,7 +275,7 @@
 }
 
 .suggestion-tag:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
     transform: translateY(-2px);
 }
 
@@ -297,9 +297,9 @@
 }
 
 .load-more-button:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
     transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
 }
 
 /* Placeholder animation */
@@ -376,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function fetchSearchResults(offset, limit) {
-        if (isLoading) return;
+        if (isLoading || !query) return;
         
         isLoading = true;
         if (loadMoreBtn) {
@@ -387,6 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`/search?query=${encodeURIComponent(query)}&offset=${offset}&limit=${limit}&format=json`)
             .then(response => response.json())
             .then(data => {
+                // Remove placeholders if this is the initial load
                 if (offset === 0 && document.querySelector('.placeholder-card')) {
                     searchResultsContainer.innerHTML = '';
                 }
@@ -405,6 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 } else {
                     if (offset === 0) {
+                        // If no results on first request, show empty state
                         searchResultsContainer.innerHTML = `
                             <div class="no-results">
                                 <h3>По запросу "${query}" ничего не найдено</h3>
@@ -452,6 +454,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.location.href = `/video/${video.user_id}__${video.video_id}/`;
             };
             
+            // Use thumbnail URL if available, fallback to placeholder
             const thumbnailUrl = video.thumbnail_url || '/static/placeholder.jpg';
             
             // Improved avatar content generation with proper handling
@@ -500,28 +503,27 @@ document.addEventListener('DOMContentLoaded', function() {
             
             searchResultsContainer.appendChild(resultItem);
         });
-        
-        // Initialize lazy loading for thumbnails
-        initializeLazyLoading();
     }
     
     const filterItems = document.querySelectorAll('.filter-item');
-    filterItems.forEach(item => {
-        item.addEventListener('click', function() {
-            filterItems.forEach(filter => filter.classList.remove('active'));
-            this.classList.add('active');
-            
-            const filterType = this.getAttribute('data-filter');
-            const resultItems = document.querySelectorAll('.search-result-item');
-            resultItems.forEach(result => {
-                if (filterType === 'all' || result.getAttribute('data-type') === filterType) {
-                    result.style.display = 'flex';
-                } else {
-                    result.style.display = 'none';
-                }
+    if (filterItems.length > 0) {
+        filterItems.forEach(item => {
+            item.addEventListener('click', function() {
+                filterItems.forEach(filter => filter.classList.remove('active'));
+                this.classList.add('active');
+                
+                const filterType = this.getAttribute('data-filter');
+                const resultItems = document.querySelectorAll('.search-result-item');
+                resultItems.forEach(result => {
+                    if (filterType === 'all' || result.getAttribute('data-type') === filterType) {
+                        result.style.display = 'flex';
+                    } else {
+                        result.style.display = 'none';
+                    }
+                });
             });
         });
-    });
+    }
 });
 </script>
 {% endblock %}

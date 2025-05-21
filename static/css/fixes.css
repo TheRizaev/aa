@@ -62,13 +62,13 @@
 
 /* Исправления для кнопок действий */
 .action-button {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     border-radius: 20px;
     padding: 8px 15px;
 }
 
 .action-button:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 /* Исправления для светлой темы в video-grid */
@@ -114,7 +114,7 @@
     background-color: rgba(255, 255, 255, 0.05);
     max-height: 300px; /* Увеличиваем для лучшего отображения */
     overflow-y: auto;
-    border: 2px solid rgba(159, 37, 88, 0.2);
+    border: 2px solid rgba(37, 39, 159, 0.2);
 }
 
 .expertise-areas-container label {
@@ -144,7 +144,7 @@
 .file-input-container {
     position: relative;
     padding: 40px 30px;
-    border: 2px dashed rgba(159, 37, 88, 0.3);
+    border: 2px dashed rgba(37, 39, 159, 0.3);
     border-radius: 12px;
     text-align: center;
     cursor: pointer;
@@ -155,8 +155,8 @@
 .file-input-container:hover,
 .file-input-container.highlight {
     border-color: var(--accent-color);
-    background-color: rgba(159, 37, 88, 0.1);
-    box-shadow: 0 0 0 3px rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
+    box-shadow: 0 0 0 3px rgba(37, 39, 159, 0.1);
 }
 
 /* Исправления для видеоплеера */
@@ -194,14 +194,14 @@
     display: none;
     overflow: hidden;
     margin-top: 5px;
-    border: 1px solid rgba(159, 37, 88, 0.1);
+    border: 1px solid rgba(37, 39, 159, 0.1);
     animation: dropdownFadeIn 0.3s;
 }
 
 .dark-theme .search-dropdown {
     background-color: var(--medium-bg);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(159, 37, 88, 0.2);
+    border: 1px solid rgba(37, 39, 159, 0.2);
 }
 
 .search-dropdown.show {
@@ -214,11 +214,11 @@
     font-weight: bold;
     color: var(--gray-color);
     background-color: rgba(159, 37, 88, 0.05);
-    border-bottom: 1px solid rgba(159, 37, 88, 0.1);
+    border-bottom: 1px solid rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .search-header {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .search-term {
@@ -231,12 +231,12 @@
 }
 
 .search-term:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     border-left-color: var(--primary-color);
 }
 
 .dark-theme .search-term:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .search-term-icon {
@@ -267,12 +267,12 @@
 }
 
 .search-all-item:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     border-left-color: var(--primary-color);
 }
 
 .dark-theme .search-all-item:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .search-all-icon {
@@ -295,12 +295,12 @@
 }
 
 .search-result:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     border-left-color: var(--primary-color);
 }
 
 .dark-theme .search-result:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .search-result .search-thumbnail {
@@ -347,17 +347,17 @@
     text-align: center;
     font-weight: bold;
     cursor: pointer;
-    border-top: 1px solid rgba(159, 37, 88, 0.2);
+    border-top: 1px solid rgba(37, 39, 159, 0.2);
     color: var(--primary-color);
     transition: background-color 0.3s;
 }
 
 .search-more:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .search-more:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 @keyframes dropdownFadeIn {

@@ -13,7 +13,7 @@ header {
 .light-theme header {
     background-color: rgba(255, 248, 250, 0.9);
     backdrop-filter: blur(10px);
-    box-shadow: 0 3px 15px rgba(159, 37, 88, 0.1);
+    box-shadow: 0 3px 15px rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme header {
@@ -67,7 +67,7 @@ header {
     transition: all 0.3s;
     display: flex;
     align-items: center;
-    box-shadow: 0 3px 8px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 3px 8px rgba(37, 39, 159, 0.3);
 }
 
 .theme-toggle:hover {
@@ -123,7 +123,7 @@ header {
 }
 
 .login-button:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     transform: translateY(-3px);
 }
 
@@ -131,11 +131,11 @@ header {
     background-color: var(--accent-color);
     border: none;
     color: white;
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
 }
 
 .register-button:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
 }

@@ -35,11 +35,11 @@
 
 .video-card:hover {
     transform: translateY(-10px) scale(1.02);
-    box-shadow: 0 10px 25px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 10px 25px rgba(37, 39, 159, 0.2);
 }
 
 .dark-theme .video-card:hover {
-    box-shadow: 0 10px 25px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 10px 25px rgba(37, 39, 159, 0.3);
 }
 
 .thumbnail {
@@ -154,7 +154,7 @@
 
 .category-chip {
     padding: 0.6rem 1.5rem;
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     color: var(--text-light);
     border-radius: 30px;
     font-size: 0.95rem;
@@ -168,23 +168,23 @@
 
 .dark-theme .category-chip {
     color: var(--text-light);
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .category-chip:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
     transform: translateY(-3px);
 }
 
 .dark-theme .category-chip:hover {
-    background-color: rgba(159, 37, 88, 0.3);
+    background-color: rgba(37, 39, 159, 0.3);
 }
 
 .category-chip.active {
     background-color: var(--accent-color);
     color: white;
     font-weight: bold;
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
 }
 
 @keyframes spin {
@@ -331,7 +331,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     flex-shrink: 0;
 }
 

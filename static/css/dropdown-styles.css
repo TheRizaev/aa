@@ -12,14 +12,14 @@
     overflow: hidden;
     z-index: 1000;
     animation: dropdownFadeIn 0.3s;
-    border: 1px solid rgba(159, 37, 88, 0.1);
+    border: 1px solid rgba(37, 39, 159, 0.1);
     margin-top: 15px;
 }
 
 .dark-theme .user-dropdown {
     background-color: var(--medium-bg);
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(159, 37, 88, 0.2);
+    border: 1px solid rgba(37, 39, 159, 0.2);
 }
 
 .user-dropdown.show {
@@ -28,7 +28,7 @@
 
 .user-header {
     padding: 1.2rem;
-    border-bottom: 1px solid rgba(159, 37, 88, 0.1);
+    border-bottom: 1px solid rgba(37, 39, 159, 0.1);
     display: flex;
     align-items: center;
 }
@@ -66,13 +66,13 @@
 }
 
 .dropdown-item:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     border-left-color: var(--primary-color);
     color: var(--primary-color);
 }
 
 .dark-theme .dropdown-item:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .dropdown-item .icon {
@@ -87,7 +87,7 @@
     color: inherit;
     padding: 10px 15px;
     border-radius: 30px;
-    border: 2px solid rgba(159, 37, 88, 0.2);
+    border: 2px solid rgba(37, 39, 159, 0.2);
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239f2558' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
@@ -133,14 +133,14 @@ select.filter-select option {
     display: none;
     overflow: hidden;
     margin-top: 5px;
-    border: 1px solid rgba(159, 37, 88, 0.1);
+    border: 1px solid rgba(37, 39, 159, 0.1);
     animation: dropdownFadeIn 0.3s;
 }
 
 .dark-theme .search-dropdown {
     background-color: var(--medium-bg);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(159, 37, 88, 0.2);
+    border: 1px solid rgba(37, 39, 159, 0.2);
 }
 
 .search-dropdown.show {
@@ -162,12 +162,12 @@ select.filter-select option {
 }
 
 .search-result:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     border-left-color: var(--primary-color);
 }
 
 .dark-theme .search-result:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .search-title {

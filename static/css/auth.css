@@ -96,7 +96,7 @@
     width: 100%;
     padding: 12px 15px;
     border-radius: 8px;
-    border: 2px solid rgba(159, 37, 88, 0.2);
+    border: 2px solid rgba(37, 39, 159, 0.2);
     background-color: rgba(255, 255, 255, 0.1);
     font-size: 16px;
     color: inherit;
@@ -105,14 +105,14 @@
 }
 
 .dark-theme .form-group input {
-    border-color: rgba(159, 37, 88, 0.3);
+    border-color: rgba(37, 39, 159, 0.3);
     background-color: rgba(255, 255, 255, 0.05);
 }
 
 .form-group input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 0 0 3px rgba(37, 39, 159, 0.2);
 }
 
 .form-error {
@@ -133,12 +133,12 @@
     cursor: pointer;
     transition: all 0.3s;
     margin-top: 15px;
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
     box-sizing: border-box; /* Важно: чтобы padding не увеличивал ширину */
 }
 
 .auth-button:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
 }
@@ -156,7 +156,7 @@
 }
 
 .auth-links a:hover {
-    color: #7d1e46;
+    color: #1f2f4a;
     text-decoration: underline;
 }
 
@@ -201,7 +201,7 @@
 
 .light-theme .profile-header {
     background-color: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.1);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .profile-header {
@@ -220,7 +220,7 @@
     align-items: center;
     justify-content: center;
     position: relative;
-    box-shadow: 0 8px 20px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 8px 20px rgba(37, 39, 159, 0.3);
 }
 
 .profile-avatar img {
@@ -250,7 +250,7 @@
 
 .light-theme .profile-section {
     background-color: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.1);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .profile-section {
@@ -261,7 +261,7 @@
 .profile-section h3 {
     margin-top: 0;
     padding-bottom: 15px;
-    border-bottom: 2px solid rgba(159, 37, 88, 0.2);
+    border-bottom: 2px solid rgba(37, 39, 159, 0.2);
     color: var(--primary-color);
 }
 
@@ -274,7 +274,7 @@
     min-height: 120px;
     padding: 15px;
     border-radius: 8px;
-    border: 2px solid rgba(159, 37, 88, 0.2);
+    border: 2px solid rgba(37, 39, 159, 0.2);
     background-color: rgba(255, 255, 255, 0.1);
     font-size: 16px;
     color: inherit;
@@ -283,14 +283,14 @@
 }
 
 .dark-theme .profile-form textarea {
-    border-color: rgba(159, 37, 88, 0.3);
+    border-color: rgba(37, 39, 159, 0.3);
     background-color: rgba(255, 255, 255, 0.05);
 }
 
 .profile-form textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 0 0 3px rgba(37, 39, 159, 0.2);
 }
 
 .profile-save-button {
@@ -304,11 +304,11 @@
     cursor: pointer;
     transition: all 0.3s;
     margin-top: 20px;
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
 }
 
 .profile-save-button:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
 }
@@ -326,14 +326,14 @@
 .author-container {
     max-width: 800px;
     background-color: rgba(159, 37, 88, 0.05);
-    box-shadow: 0 8px 32px rgba(159, 37, 88, 0.1);
-    border: 1px solid rgba(159, 37, 88, 0.1);
+    box-shadow: 0 8px 32px rgba(37, 39, 159, 0.1);
+    border: 1px solid rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .author-container {
-    background-color: rgba(159, 37, 88, 0.1);
-    box-shadow: 0 8px 32px rgba(159, 37, 88, 0.2);
-    border: 1px solid rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.1);
+    box-shadow: 0 8px 32px rgba(37, 39, 159, 0.2);
+    border: 1px solid rgba(37, 39, 159, 0.2);
 }
 
 .author-info-text {
@@ -514,7 +514,7 @@
     padding: 15px;
     border-radius: 8px;
     background-color: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(159, 37, 88, 0.2);
+    border: 2px solid rgba(37, 39, 159, 0.2);
     color: inherit;
     font-family: inherit;
     resize: vertical;
@@ -524,7 +524,7 @@
 #id_credentials:focus {
     outline: none;
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 0 0 3px rgba(37, 39, 159, 0.2);
 }
 
 /* Адаптивность */
@@ -594,7 +594,7 @@
 
 /* Email verification styles */
 .verification-info {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -611,14 +611,14 @@
 }
 
 .dark-theme .verification-info {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 /* Pulsing animation for verification info */
 @keyframes subtle-pulse {
-    0% { background-color: rgba(159, 37, 88, 0.1); }
+    0% { background-color: rgba(37, 39, 159, 0.1); }
     50% { background-color: rgba(159, 37, 88, 0.15); }
-    100% { background-color: rgba(159, 37, 88, 0.1); }
+    100% { background-color: rgba(37, 39, 159, 0.1); }
 }
 
 .verification-info {
@@ -630,9 +630,9 @@
 }
 
 @keyframes subtle-pulse-dark {
-    0% { background-color: rgba(159, 37, 88, 0.2); }
+    0% { background-color: rgba(37, 39, 159, 0.2); }
     50% { background-color: rgba(159, 37, 88, 0.25); }
-    100% { background-color: rgba(159, 37, 88, 0.2); }
+    100% { background-color: rgba(37, 39, 159, 0.2); }
 }
 
 /* Highlight required fields */
@@ -662,7 +662,7 @@
     width: 100%;
     padding: 12px 15px;
     border-radius: 8px;
-    border: 2px solid rgba(159, 37, 88, 0.2);
+    border: 2px solid rgba(37, 39, 159, 0.2);
     background-color: rgba(255, 255, 255, 0.1);
     font-size: 16px;
     color: inherit;
@@ -674,7 +674,7 @@
 #id_date_of_birth:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 0 0 3px rgba(37, 39, 159, 0.2);
 }
 
 .dark-theme #id_date_of_birth {
@@ -695,7 +695,7 @@ input[type="date"] {
     width: 100%;
     padding: 12px 15px;
     border-radius: 8px;
-    border: 2px solid rgba(159, 37, 88, 0.2);
+    border: 2px solid rgba(37, 39, 159, 0.2);
     background-color: rgba(255, 255, 255, 0.1);
     font-size: 16px;
     color: inherit;
@@ -713,7 +713,7 @@ input[type="date"] {
 input[type="date"]:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 0 0 3px rgba(37, 39, 159, 0.2);
 }
 
 .dark-theme input[type="date"] {
@@ -789,7 +789,7 @@ input.verification-input {
 /* Pulsing animation for special elements */
 @keyframes subtle-pulse {
     0% { background-color: rgba(159, 37, 88, 0.05); }
-    50% { background-color: rgba(159, 37, 88, 0.1); }
+    50% { background-color: rgba(37, 39, 159, 0.1); }
     100% { background-color: rgba(159, 37, 88, 0.05); }
 }
 
@@ -798,9 +798,9 @@ input.verification-input {
 }
 
 @keyframes subtle-pulse-dark {
-    0% { background-color: rgba(159, 37, 88, 0.1); }
+    0% { background-color: rgba(37, 39, 159, 0.1); }
     50% { background-color: rgba(159, 37, 88, 0.15); }
-    100% { background-color: rgba(159, 37, 88, 0.1); }
+    100% { background-color: rgba(37, 39, 159, 0.1); }
 }
 
 /* Responsive fixes */
@@ -829,7 +829,7 @@ input.verification-input {
     width: 100%;
     padding: 12px 15px;
     border-radius: 8px;
-    border: 2px solid rgba(159, 37, 88, 0.2);
+    border: 2px solid rgba(37, 39, 159, 0.2);
     background-color: rgba(255, 255, 255, 0.1);
     font-size: 16px;
     color: inherit;
@@ -846,7 +846,7 @@ input.verification-input {
 .date-picker-wrapper input[type="date"]:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 0 0 3px rgba(37, 39, 159, 0.2);
 }
 
 .dark-theme .date-picker-wrapper input[type="date"] {
@@ -937,7 +937,7 @@ input[type="date"] {
 
 /* Welcome message styling for user details page */
 .welcome-text {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 25px;
@@ -947,19 +947,19 @@ input[type="date"] {
 }
 
 @keyframes subtle-pulse {
-    0% { background-color: rgba(159, 37, 88, 0.1); }
+    0% { background-color: rgba(37, 39, 159, 0.1); }
     50% { background-color: rgba(159, 37, 88, 0.15); }
-    100% { background-color: rgba(159, 37, 88, 0.1); }
+    100% { background-color: rgba(37, 39, 159, 0.1); }
 }
 
 .dark-theme .welcome-text {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 @keyframes subtle-pulse-dark {
-    0% { background-color: rgba(159, 37, 88, 0.2); }
+    0% { background-color: rgba(37, 39, 159, 0.2); }
     50% { background-color: rgba(159, 37, 88, 0.25); }
-    100% { background-color: rgba(159, 37, 88, 0.2); }
+    100% { background-color: rgba(37, 39, 159, 0.2); }
 }
 
 .dark-theme .welcome-text {
@@ -1057,7 +1057,7 @@ input[type="date"] {
 }
 
 .welcome-text {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     padding: 20px;
     border-radius: 10px;
     margin-bottom: 25px;
@@ -1066,7 +1066,7 @@ input[type="date"] {
 }
 
 .dark-theme .welcome-text {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 /* Update avatar first letter to use display name */

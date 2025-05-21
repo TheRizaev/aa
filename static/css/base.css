@@ -1,15 +1,18 @@
 /* Base styles and variables */
 :root {
-    --primary-color: #9f2558; /* Основной цвет кролика KRONIK - насыщенный розовый */
-    --secondary-color: #ffb0c9; /* Светло-розовый цвет для акцентов */
+    --primary-color: #4043b3; /* Основной цвет кролика KRONIK - насыщенный розовый */
+    --secondary-color: #01ffcc; /* Светло-розовый цвет для акцентов */
     --dark-bg: #010e11; /* Тёмный фон */
     --medium-bg: #07181f; /* Промежуточный темный фон */
     --light-bg: #fff8fa; /* Светлый фон с розовым оттенком */
-    --accent-color: #9f2558; /* Акцентный цвет для кнопок и важных элементов */
+    --accent-color: #4469a4; /* Акцентный цвет для кнопок и важных элементов */
     --text-light: #fff8fa; /* Цвет текста на темном фоне */
     --text-dark: #110108; /* Цвет текста на светлом фоне */
     --gray-color: #7a6563; /* Приглушенный коричневато-серый */
-    --bunny-shadow: 0 8px 32px rgba(159, 37, 88, 0.2); /* Тень в стиле KRONIK */
+    --bunny-shadow: 0 8px 32px rgba(37, 39, 159, 0.2); /* Тень в стиле KRONIK */
+    --сolor-1: rgba(37, 39, 159, 0.1);
+    --color-2: rgba(37, 39, 159, 0.2);
+    --color-3: #1f2f4a;
 }
 
 /* Основные стили */
@@ -55,7 +58,7 @@ body.dark-theme {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #7d1e46;
+    background: #1f2f4a;
 }
 
 /* Theme Transition Animation */
@@ -130,23 +133,23 @@ body.dark-theme {
 .btn-primary {
     background-color: var(--accent-color);
     color: white;
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
 }
 
 .btn-primary:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
 }
 
 .btn-secondary {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     color: var(--primary-color);
     border: 2px solid var(--primary-color);
 }
 
 .btn-secondary:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
     transform: translateY(-3px);
 }
 
@@ -166,7 +169,7 @@ body.dark-theme {
 }
 
 .notification-icon:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .notification-badge {
@@ -198,14 +201,14 @@ body.dark-theme {
     overflow: hidden;
     z-index: 1000;
     animation: dropdownFadeIn 0.3s;
-    border: 1px solid rgba(159, 37, 88, 0.1);
+    border: 1px solid rgba(37, 39, 159, 0.1);
     margin-top: 15px;
 }
 
 .dark-theme .notification-dropdown {
     background-color: var(--medium-bg);
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(159, 37, 88, 0.2);
+    border: 1px solid rgba(37, 39, 159, 0.2);
 }
 
 .notification-dropdown.show {
@@ -214,7 +217,7 @@ body.dark-theme {
 
 .notification-header {
     padding: 15px 20px;
-    border-bottom: 1px solid rgba(159, 37, 88, 0.1);
+    border-bottom: 1px solid rgba(37, 39, 159, 0.1);
 }
 
 .notification-header h3 {
@@ -262,7 +265,7 @@ body.dark-theme {
 }
 
 .notification-login-btn:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     transform: translateY(-2px);
 }
 
@@ -270,18 +273,18 @@ body.dark-theme {
     background-color: var(--accent-color);
     border: none;
     color: white;
-    box-shadow: 0 3px 10px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 3px 10px rgba(37, 39, 159, 0.2);
 }
 
 .notification-register-btn:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
 }
 
 .notification-item {
     padding: 15px 20px;
-    border-bottom: 1px solid rgba(159, 37, 88, 0.1);
+    border-bottom: 1px solid rgba(37, 39, 159, 0.1);
     transition: background-color 0.3s;
 }
 

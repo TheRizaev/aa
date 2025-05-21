@@ -50,7 +50,7 @@
 .sidebar-section {
     margin-top: 1.5rem;
     padding-top: 1.5rem;
-    border-top: 1px solid rgba(159, 37, 88, 0.2);
+    border-top: 1px solid rgba(37, 39, 159, 0.2);
 }
 
 .sidebar-title {
@@ -77,12 +77,12 @@
 
 /* Эффект наведения для элементов меню */
 .light-theme .menu-item:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     border-left-color: var(--primary-color);
 }
 
 .dark-theme .menu-item:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
     border-left-color: var(--primary-color);
 }
 
@@ -208,7 +208,7 @@
     background: linear-gradient(
         90deg,
         transparent,
-        rgba(159, 37, 88, 0.1),
+        rgba(37, 39, 159, 0.1),
         transparent
     );
     transition: left 0.5s ease;

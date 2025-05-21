@@ -186,13 +186,14 @@
             </div>
             {% endif %}
             
+            
             <div class="sidebar-section">
                 <div class="sidebar-title">ВЫ</div>
-                <div class="menu-item">
+                <div class="menu-item {% if request.path == '/liked-videos/' %}active{% endif %}" onclick="window.location.href='{% url 'liked_videos' %}'">
                     <div class="menu-icon"><img src="/static/icons/like.svg" alt="Понравившиеся" width="24" height="24"></div>
                     <div class="menu-text">Понравившиеся</div>
                 </div>
-                <div class="menu-item">
+                <div class="menu-item {% if request.path == '/history/' %}active{% endif %}" onclick="window.location.href='{% url 'watch_history' %}'">
                     <div class="menu-icon"><img src="/static/icons/timer.svg" alt="История" width="24" height="24"></div>
                     <div class="menu-text">История просмотров</div>
                 </div>
@@ -276,11 +277,11 @@
 }
 
 .subscription-item:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .subscription-item:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .subscription-avatar {
@@ -382,7 +383,7 @@
     const subscriptionsList = document.getElementById('subscriptions-list');
     
     // Only initialize if elements exist and user is authenticated
-    if (subscriptionsToggle && subscriptionsList {% if user.is_authenticated %} && true {% else %} && false {% endif %}) {
+    if (subscriptionsToggle && subscriptionsList) {
         let subscriptionsLoaded = false;
         
         // Toggle subscriptions list
@@ -423,14 +424,14 @@
                 return;
             }
             
-            subscriptions.forEach(subscription => {
+            subscriptions.forEach((subscription, index) => {
                 const item = document.createElement('div');
                 item.className = 'subscription-item';
-                item.onclick = function() {
-                    window.location.href = `/channel/${subscription.channel_id}/`;
-                };
                 
-                // Determine avatar content - use avatar_url if available
+                // Create a direct link to the channel
+                const channelUrl = `/channel/${subscription.channel_id}/`;
+                
+                // Determine avatar content
                 let avatarContent = '';
                 if (subscription.avatar_url) {
                     avatarContent = `<img src="${subscription.avatar_url}" alt="${subscription.display_name}">`;
@@ -438,10 +439,16 @@
                     avatarContent = subscription.display_name.charAt(0);
                 }
                 
+                // Create HTML with direct link
                 item.innerHTML = `
-                    <div class="subscription-avatar">${avatarContent}</div>
-                    <div class="subscription-name">${subscription.display_name}</div>
+                    <a href="${channelUrl}" style="display: flex; align-items: center; width: 100%; text-decoration: none; color: inherit;">
+                        <div class="subscription-avatar">${avatarContent}</div>
+                        <div class="subscription-name">${subscription.display_name}</div>
+                    </a>
                 `;
+                
+                // Add animation delay based on index
+                item.style.animationDelay = `${index * 0.05}s`;
                 
                 subscriptionsList.appendChild(item);
             });

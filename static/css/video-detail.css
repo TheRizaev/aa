@@ -25,7 +25,7 @@
     font-size: 1.3rem;
     margin-bottom: 1.5rem;
     padding-bottom: 0.5rem;
-    border-bottom: 2px solid rgba(159, 37, 88, 0.2);
+    border-bottom: 2px solid rgba(37, 39, 159, 0.2);
     position: relative;
 }
 
@@ -52,7 +52,7 @@
 
 .related-video-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(159, 37, 88, 0.2);
+    box-shadow: 0 8px 20px rgba(37, 39, 159, 0.2);
 }
 
 .related-thumbnail {
@@ -127,7 +127,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 15px 0;
-    border-bottom: 2px solid rgba(159, 37, 88, 0.2);
+    border-bottom: 2px solid rgba(37, 39, 159, 0.2);
     margin-bottom: 20px;
 }
 
@@ -153,16 +153,16 @@
     align-items: center;
     gap: 6px;
     font-size: 1rem;
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .light-theme .action-button:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     color: var(--primary-color);
 }
 
 .dark-theme .action-button:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
     color: var(--primary-color);
 }
 
@@ -175,7 +175,7 @@
     display: flex;
     align-items: center;
     padding: 20px 0;
-    border-bottom: 2px solid rgba(159, 37, 88, 0.2);
+    border-bottom: 2px solid rgba(37, 39, 159, 0.2);
     margin-bottom: 25px;    
 }
 
@@ -219,11 +219,11 @@
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s;
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
 }
 
 .subscribe-button:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
 }
@@ -388,11 +388,11 @@
 }
 
 .light-theme .comment-actions button:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .dark-theme .comment-actions button:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 /* Клавиши быстрого доступа */
@@ -416,7 +416,7 @@
 }
 
 .shortcuts-toggle:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     transform: translateY(-3px);
 }
 
@@ -429,7 +429,7 @@
 }
 
 .dark-theme .shortcuts-panel {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 .shortcuts-panel h3 {
@@ -464,7 +464,7 @@
     color: white;
     border-radius: 6px;
     font-weight: bold;
-    box-shadow: 0 2px 8px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 2px 8px rgba(37, 39, 159, 0.3);
 }
 
 /* Стили для самого видеоплеера */
@@ -581,7 +581,7 @@
 }
 
 .quality-option:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .quality-option.active {
@@ -745,7 +745,7 @@
 }
 
 .qa-submit:hover, .reply-submit:hover {
-    background-color: #7d1e46;
+    background-color: #1f2f4a;
     transform: translateY(-2px);
 }
 
@@ -756,7 +756,7 @@
 }
 
 .login-prompt {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -1032,7 +1032,7 @@
 }
 
 .show-replies-btn:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     border-color: var(--accent-color);
     color: var(--accent-color);
 }
@@ -1044,7 +1044,7 @@
     text-decoration: none;
     padding: 2px 4px;
     border-radius: 4px;
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
 }
 
 /* Reply to Reply Button */
@@ -1065,7 +1065,7 @@
 }
 
 .dark-theme .qa-reply-to-reply-btn:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 /* Animation for replies container */
@@ -1086,7 +1086,7 @@
 
 /* Reply separator */
 .qa-reply:not(:last-child) {
-    border-bottom: 1px solid rgba(159, 37, 88, 0.1);
+    border-bottom: 1px solid rgba(37, 39, 159, 0.1);
     padding-bottom: 15px;
 }
 

@@ -14,7 +14,7 @@
     justify-content: center;
     font-weight: bold;
     color: var(--text-light);
-    box-shadow: 0 3px 8px rgba(159, 37, 88, 0.3);
+    box-shadow: 0 3px 8px rgba(37, 39, 159, 0.3);
     transition: transform 0.3s;
     position: relative;
     overflow: hidden; /* Добавлено для обрезки изображения внутри */
@@ -43,7 +43,7 @@
     overflow: hidden;
     z-index: 1000;
     animation: dropdownFadeIn 0.3s;
-    border: 1px solid rgba(159, 37, 88, 0.1);
+    border: 1px solid rgba(37, 39, 159, 0.1);
     margin-top: 15px;
 }
 
@@ -61,7 +61,7 @@
 .dark-theme .user-dropdown {
     background-color: var(--medium-bg);
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(159, 37, 88, 0.2);
+    border: 1px solid rgba(37, 39, 159, 0.2);
 }
 
 .user-dropdown.show {
@@ -70,7 +70,7 @@
 
 .user-header {
     padding: 1.2rem;
-    border-bottom: 1px solid rgba(159, 37, 88, 0.1);
+    border-bottom: 1px solid rgba(37, 39, 159, 0.1);
     display: flex;
     align-items: center;
 }
@@ -108,13 +108,13 @@
 }
 
 .dropdown-item:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 39, 159, 0.1);
     border-left-color: var(--primary-color);
     color: var(--primary-color);
 }
 
 .dark-theme .dropdown-item:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 39, 159, 0.2);
 }
 
 .dropdown-item .icon {
