@@ -44,6 +44,9 @@ urlpatterns = [
     path('api/toggle-subscription/', views.toggle_subscription, name='toggle_subscription'),
     path('api/check-subscription/<str:channel_id>/', views.check_subscription, name='check_subscription'),
     path('api/get-subscriptions/', views.get_subscriptions, name='get_subscriptions'),
+    
+    path('liked-videos/', views.liked_videos, name='liked_videos'),
+    path('history/', views.watch_history, name='watch_history'),
 ]
 
 if settings.DEBUG:

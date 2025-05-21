@@ -553,13 +553,28 @@ def studio_view(request):
         username = request.user.username
         bucket = get_bucket(BUCKET_NAME)
         
+        has_videos = False
         if bucket:
-            # Just check if metadata folder has any files
+            # For S3-compatible storage, use client to check if metadata folder has any files
+            client = bucket['client']
+            bucket_name = bucket['name']
+            
+            # Check if metadata folder exists
             metadata_prefix = f"{username}/metadata/"
-            metadata_blobs = list(bucket.list_blobs(prefix=metadata_prefix, max_results=1))
-            has_videos = len(metadata_blobs) > 0
-        else:
-            has_videos = False
+            
+            try:
+                # Use list_objects_v2 with MaxKeys=1 to check if any objects exist
+                response = client.list_objects_v2(
+                    Bucket=bucket_name,
+                    Prefix=metadata_prefix,
+                    MaxKeys=1
+                )
+                
+                # If 'Contents' key exists and has items, user has videos
+                has_videos = 'Contents' in response and len(response['Contents']) > 0
+            except Exception as e:
+                logger.error(f"Error checking for videos: {e}")
+                has_videos = False
         
         # Return the template with either placeholders or empty state
         return render(request, 'studio/studio.html', {

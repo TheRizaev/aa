@@ -1,6 +1,6 @@
 
 from django.shortcuts import render, redirect
-from .models import VideoLike, Category, Subscription
+from .models import VideoLike, Category, Subscription, VideoView
 import random
 from .s3_storage import update_video_metadata, upload_video_with_quality_processing, get_video_metadata, upload_thumbnail, generate_video_url, get_video_url_with_quality, BUCKET_NAME, cache_video_metadata, get_bucket, get_user_profile_from_gcs, get_video_comments, list_user_videos, update_user_profile_in_gcs
 from django.db import transaction
@@ -188,7 +188,7 @@ def video_detail(request, video_id):
             )
         
         # Get recommended videos using optimized function - can be loaded in background
-        recommended_videos = get_recommended_videos(user_id, gcs_video_id)
+        recommended_videos = fetch_random_videos(exclude_video_id=gcs_video_id)
         
         return render(request, 'main/video.html', {
             'video': video_data,
@@ -345,9 +345,166 @@ def get_recommended_videos(current_user_id, current_video_id, limit=10):
         logger.error(f"Error getting recommended videos: {e}")
         return []
 
+# Add this as a separate function in main/views.py that doesn't replace the existing function
+def fetch_random_videos(exclude_video_id=None, limit=10):
+    """
+    Fetches random videos for recommendations with proper thumbnails
+    
+    Args:
+        exclude_video_id: ID of video to exclude
+        limit: maximum number of videos to return
+        
+    Returns:
+        list: List of recommended videos
+    """
+    try:
+        import random
+        import json
+        from datetime import datetime
+        
+        # Get bucket
+        bucket = get_bucket(BUCKET_NAME)
+        if not bucket:
+            return []
+            
+        client = bucket['client']
+        bucket_name = bucket['name']
+        
+        # List all users
+        result = client.list_objects_v2(Bucket=bucket_name, Delimiter='/')
+        
+        # Get all prefixes (folders)
+        users = []
+        for prefix in result.get('CommonPrefixes', []):
+            user_id = prefix.get('Prefix', '').rstrip('/')
+            if user_id and user_id.startswith('@'):
+                users.append(user_id)
+        
+        # Shuffle users for randomness
+        random.shuffle(users)
+        
+        # Collection for all videos
+        all_videos = []
+        
+        # For each user, try to get some videos (limit to 10 users max for performance)
+        for user_id in users[:10]:
+            # Look for metadata folder
+            metadata_prefix = f"{user_id}/metadata/"
+            
+            try:
+                # List objects with the metadata prefix (limit to 5 results per user)
+                response = client.list_objects_v2(Bucket=bucket_name, Prefix=metadata_prefix, MaxKeys=5)
+                
+                if 'Contents' not in response:
+                    continue
+                    
+                # Get user profile for display name
+                user_profile = None
+                try:
+                    user_meta_key = f"{user_id}/bio/user_meta.json"
+                    profile_response = client.get_object(Bucket=bucket_name, Key=user_meta_key)
+                    user_profile = json.loads(profile_response['Body'].read().decode('utf-8'))
+                except Exception:
+                    user_profile = None
+                
+                # Process metadata files
+                for obj in response.get('Contents', []):
+                    if obj['Key'].endswith('.json'):
+                        try:
+                            # Get video metadata
+                            metadata_response = client.get_object(Bucket=bucket_name, Key=obj['Key'])
+                            metadata = json.loads(metadata_response['Body'].read().decode('utf-8'))
+                            
+                            # Skip the excluded video
+                            if exclude_video_id and metadata.get('video_id') == exclude_video_id:
+                                continue
+                                
+                            # Add user_id and create URL
+                            metadata['user_id'] = user_id
+                            metadata['url'] = f"/video/{user_id}__{metadata.get('video_id')}/"
+                            
+                            # Add display name
+                            if user_profile and 'display_name' in user_profile:
+                                metadata['display_name'] = user_profile['display_name']
+                            else:
+                                metadata['display_name'] = user_id.replace('@', '')
+                                
+                            # Make sure channel field exists
+                            metadata['channel'] = metadata.get('display_name', user_id.replace('@', ''))
+                                
+                            # Format views
+                            views = metadata.get('views', 0)
+                            if isinstance(views, (int, str)) and str(views).isdigit():
+                                views = int(views)
+                                metadata['views_formatted'] = f"{views // 1000}K просмотров" if views >= 1000 else f"{views} просмотров"
+                            else:
+                                metadata['views_formatted'] = "0 просмотров"
+                                
+                            # IMPORTANT: Generate thumbnail URL if thumbnail_path exists
+                            if 'thumbnail_path' in metadata:
+                                try:
+                                    metadata['thumbnail_url'] = generate_video_url(
+                                        user_id, 
+                                        metadata['video_id'], 
+                                        file_path=metadata['thumbnail_path'], 
+                                        expiration_time=3600
+                                    )
+                                except Exception as thumb_error:
+                                    logger.error(f"Error generating thumbnail URL: {thumb_error}")
+                                
+                            # Add to results
+                            all_videos.append(metadata)
+                            
+                            # If we have enough videos, stop
+                            if len(all_videos) >= limit:
+                                break
+                        except Exception as e:
+                            logger.error(f"Error processing metadata: {e}")
+                            continue
+            except Exception as e:
+                logger.error(f"Error processing user {user_id}: {e}")
+                continue
+                
+            # If we have enough videos, stop checking more users
+            if len(all_videos) >= limit:
+                break
+                
+        # If we don't have enough videos, create placeholders
+        if len(all_videos) < limit:
+            titles = ["Введение в Python", "Основы программирования", "Математический анализ", 
+                     "Физика для начинающих", "Химия: основные понятия", "История Древнего мира"]
+                     
+            channels = ["Михаил Иванов", "Программирование+", "Академия Наук", 
+                       "Школа Технологий", "IT Education", "Научный подход"]
+                       
+            # Add placeholder videos
+            for i in range(limit - len(all_videos)):
+                all_videos.append({
+                    'title': random.choice(titles),
+                    'display_name': random.choice(channels),
+                    'channel': random.choice(channels),
+                    'views_formatted': f"{random.randint(100, 10000)} просмотров",
+                    'url': '/',
+                    'user_id': '@placeholder',
+                    'video_id': f"placeholder_{i}"
+                })
+        
+        # Shuffle results for randomness
+        random.shuffle(all_videos)
+        
+        # Return limited number of videos
+        return all_videos[:limit]
+        
+    except Exception as e:
+        logger.error(f"Error fetching random videos: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        # Return empty list on error
+        return []
+
 def search_results(request):
     """
-    Highly optimized search results page that loads quickly and only fetches necessary data
+    Highly optimized search results page that loads quickly and shows actual results with avatars
     """
     query = request.GET.get('query', '')
     offset = int(request.GET.get('offset', 0))
@@ -360,18 +517,17 @@ def search_results(request):
             return JsonResponse({'videos': [], 'total': 0})
         return render(request, 'main/search.html', {'query': query, 'videos': []})
     
-    # Search implementation using GCS - optimized version
+    # Search implementation using S3
     try:
         import logging
         import json
         from datetime import datetime
-        import concurrent.futures
         
         logger = logging.getLogger(__name__)
         logger.info(f"Starting optimized search for: '{query}' with offset={offset}, limit={limit}")
         
         # Initial response with placeholder data (for fast initial page load)
-        if not json_response:
+        if not json_response and request.GET.get('is_loading', 'false').lower() == 'true':
             # Render the page immediately with placeholders
             return render(request, 'main/search.html', {
                 'query': query,
@@ -380,135 +536,135 @@ def search_results(request):
                 'placeholder_count': min(limit, 6)  # Show up to 6 placeholders
             })
         
-        # For AJAX requests, perform the actual search
+        # For AJAX requests or full page loads, perform the actual search
         # Get bucket - this is required for search
         bucket = get_bucket(BUCKET_NAME)
         if not bucket:
             logger.error("Failed to get bucket")
             return JsonResponse({'error': 'Failed to access storage', 'videos': []}, status=500)
             
-        # Get list of users more efficiently - limit to 20 users max for speed
-        blobs = list(bucket.list_blobs(max_results=100))
-        users = set()
-        for blob in blobs:
-            parts = blob.name.split('/')
-            if parts and parts[0] and parts[0].startswith('@'):
-                users.add(parts[0])
-                if len(users) >= 20:  # Limit to 20 users for faster search
-                    break
+        client = bucket['client']
+        bucket_name = bucket['name']
         
-        # Define function to search a single user's videos
-        def search_user_videos(user_id):
-            results = []
+        # List all users
+        result = client.list_objects_v2(Bucket=bucket_name, Delimiter='/')
+        
+        # Get all prefixes (folders)
+        users = []
+        for prefix in result.get('CommonPrefixes', []):
+            user_id = prefix.get('Prefix', '').rstrip('/')
+            if user_id and user_id.startswith('@'):
+                users.append(user_id)
+                
+        logger.info(f"Found {len(users)} users to search through")
+        
+        # Pre-load all user profiles for efficiency
+        user_profiles = {}
+        for user_id in users:
             try:
-                # Use a single list_blobs call with a specific prefix and filter in memory
-                # This is much faster than multiple API calls
-                metadata_prefix = f"{user_id}/metadata/"
-                metadata_blobs = list(bucket.list_blobs(prefix=metadata_prefix, max_results=50))
+                user_meta_key = f"{user_id}/bio/user_meta.json"
+                response = client.get_object(Bucket=bucket_name, Key=user_meta_key)
+                user_profile = json.loads(response['Body'].read().decode('utf-8'))
+                user_profiles[user_id] = user_profile
                 
-                # Get user profile for display name and avatar
-                user_profile = None
-                avatar_url = None
-                try:
-                    user_meta_blob = bucket.blob(f"{user_id}/bio/user_meta.json")
-                    if user_meta_blob.exists():
-                        user_profile = json.loads(user_meta_blob.download_as_text())
-                        
-                        # Check if user has a custom avatar and generate URL
-                        if user_profile.get('avatar_path') and not user_profile.get('is_default_avatar', True):
-                            avatar_blob = bucket.blob(user_profile.get('avatar_path'))
-                            if avatar_blob.exists():
-                                avatar_url = avatar_blob.generate_signed_url(
-                                    version="v4",
-                                    expiration=3600,
-                                    method="GET"
-                                )
-                except Exception as profile_error:
-                    logger.error(f"Error loading profile for {user_id}: {profile_error}")
+                # Generate avatar URLs
+                if 'avatar_path' in user_profile:
+                    try:
+                        avatar_key = user_profile['avatar_path']
+                        avatar_url = client.generate_presigned_url(
+                            'get_object',
+                            Params={
+                                'Bucket': bucket_name,
+                                'Key': avatar_key
+                            },
+                            ExpiresIn=3600*24
+                        )
+                        user_profile['avatar_url'] = avatar_url
+                    except Exception as avatar_error:
+                        logger.warning(f"Could not generate avatar URL for {user_id}: {avatar_error}")
+            except Exception as e:
+                logger.warning(f"Could not load profile for {user_id}: {e}")
+        
+        # Search results
+        search_results = []
+        query_lower = query.lower()
+        
+        # Search through each user's videos
+        for user_id in users:
+            # Look for metadata folder
+            metadata_prefix = f"{user_id}/metadata/"
+            
+            try:
+                # List objects with the metadata prefix
+                paginator = client.get_paginator('list_objects_v2')
+                pages = paginator.paginate(Bucket=bucket_name, Prefix=metadata_prefix)
                 
-                # Get display name from profile or fallback to username
-                display_name = user_profile.get('display_name', user_id.replace('@', '')) if user_profile else user_id.replace('@', '')
+                metadata_objects = []
+                for page in pages:
+                    if 'Contents' in page:
+                        metadata_objects.extend(page['Contents'])
                 
-                # Process each metadata file
-                query_lower = query.lower()
-                for blob in metadata_blobs:
-                    if blob.name.endswith('.json'):
+                # Get user profile
+                user_profile = user_profiles.get(user_id)
+                
+                # Process metadata files
+                for obj in metadata_objects:
+                    if obj['Key'].endswith('.json'):
                         try:
-                            metadata_text = blob.download_as_text()
-                            video_data = json.loads(metadata_text)
+                            response = client.get_object(Bucket=bucket_name, Key=obj['Key'])
+                            metadata = json.loads(response['Body'].read().decode('utf-8'))
                             
-                            # Fast check for matches in title and description
-                            title = (video_data.get('title') or '').lower()
-                            description = (video_data.get('description') or '').lower()
+                            # Check if video matches search query
+                            title = metadata.get('title', '').lower()
+                            description = metadata.get('description', '').lower()
                             
                             if query_lower in title or query_lower in description:
-                                # Only extract minimum required fields for search results
-                                # This reduces memory usage and processing time
-                                minimal_data = {
-                                    'video_id': video_data.get('video_id'),
-                                    'title': video_data.get('title', 'No title'),
-                                    'description': video_data.get('description', ''),
-                                    'duration': video_data.get('duration', '00:00'),
-                                    'user_id': user_id,
-                                    'display_name': display_name,
-                                    'channel': display_name,  # Add channel to prevent template error
-                                    'avatar_url': avatar_url,  # Include avatar URL if available
-                                    'upload_date': video_data.get('upload_date', ''),
-                                }
+                                # Add user information
+                                metadata['user_id'] = user_id
                                 
-                                # Add thumbnail path if available
-                                if 'thumbnail_path' in video_data:
-                                    minimal_data['thumbnail_path'] = video_data['thumbnail_path']
+                                # Add display name from user profile
+                                if user_profile and 'display_name' in user_profile:
+                                    metadata['display_name'] = user_profile['display_name']
+                                else:
+                                    metadata['display_name'] = user_id.replace('@', '')
+                                
+                                # Add avatar URL from user profile
+                                if user_profile and 'avatar_url' in user_profile:
+                                    metadata['avatar_url'] = user_profile['avatar_url']
+                                
+                                # Make sure channel field exists
+                                metadata['channel'] = metadata.get('display_name', user_id.replace('@', ''))
                                 
                                 # Format views
-                                views = video_data.get('views', 0)
+                                views = metadata.get('views', 0)
                                 if isinstance(views, (int, str)) and str(views).isdigit():
                                     views = int(views)
-                                    minimal_data['views'] = views
-                                    minimal_data['views_formatted'] = f"{views // 1000}K просмотров" if views >= 1000 else f"{views} просмотров"
+                                    metadata['views_formatted'] = f"{views // 1000}K просмотров" if views >= 1000 else f"{views} просмотров"
                                 else:
-                                    minimal_data['views'] = 0
-                                    minimal_data['views_formatted'] = "0 просмотров"
+                                    metadata['views_formatted'] = "0 просмотров"
                                 
                                 # Format upload date
-                                if minimal_data['upload_date']:
+                                upload_date = metadata.get('upload_date', '')
+                                if upload_date:
                                     try:
-                                        upload_datetime = datetime.fromisoformat(minimal_data['upload_date'])
-                                        minimal_data['upload_date_formatted'] = upload_datetime.strftime("%d.%m.%Y")
+                                        upload_datetime = datetime.fromisoformat(upload_date)
+                                        metadata['upload_date_formatted'] = upload_datetime.strftime("%d.%m.%Y")
                                     except Exception:
-                                        minimal_data['upload_date_formatted'] = minimal_data['upload_date'][:10] if minimal_data['upload_date'] else "Недавно"
+                                        metadata['upload_date_formatted'] = upload_date[:10] if upload_date else "Недавно"
                                 else:
-                                    minimal_data['upload_date_formatted'] = "Недавно"
+                                    metadata['upload_date_formatted'] = "Недавно"
                                 
-                                # Add to results
-                                results.append(minimal_data)
+                                # Add to search results
+                                search_results.append(metadata)
                         except Exception as e:
-                            logger.error(f"Error processing metadata {blob.name}: {str(e)}")
+                            logger.error(f"Error processing metadata for {obj['Key']}: {str(e)}")
             except Exception as e:
                 logger.error(f"Error searching user {user_id}: {str(e)}")
-            
-            return results
-        
-        # Use parallel processing to search multiple users at once
-        search_results = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            # Submit search tasks for each user
-            future_to_user = {executor.submit(search_user_videos, user): user for user in users}
-            
-            # Collect results as they complete with a timeout
-            for future in concurrent.futures.as_completed(future_to_user, timeout=3):
-                user = future_to_user[future]
-                try:
-                    user_results = future.result()
-                    search_results.extend(user_results)
-                except Exception as exc:
-                    logger.error(f"User {user} search generated an exception: {exc}")
         
         # Sort by relevance
-        query_lower = query.lower()
         def sort_by_relevance(video):
-            title = (video.get('title') or '').lower()
-            description = (video.get('description') or '').lower()
+            title = video.get('title', '').lower()
+            description = video.get('description', '').lower()
             
             # Exact title match gets highest priority
             if title == query_lower:
@@ -536,10 +692,10 @@ def search_results(request):
         total_results = len(search_results)
         paginated_results = search_results[offset:offset + limit]
         
-        # Generate thumbnail URLs for paginated results only
+        # Generate thumbnail URLs for paginated results
         for video in paginated_results:
             # Only generate URLs if thumbnail_path exists
-            if video.get('thumbnail_path'):
+            if 'thumbnail_path' in video:
                 try:
                     video['thumbnail_url'] = generate_video_url(
                         video['user_id'], 
@@ -550,11 +706,21 @@ def search_results(request):
                 except Exception as url_error:
                     logger.error(f"Error generating thumbnail URL: {url_error}")
         
+        logger.info(f"Found {total_results} results for query '{query}', returning {len(paginated_results)}")
+        
         # Return JSON response for AJAX
-        return JsonResponse({
-            'success': True,
+        if json_response:
+            return JsonResponse({
+                'success': True,
+                'videos': paginated_results,
+                'total': total_results
+            })
+        
+        # Render template for full page load
+        return render(request, 'main/search.html', {
+            'query': query,
             'videos': paginated_results,
-            'total': total_results
+            'total_results': total_results
         })
         
     except Exception as e:
@@ -562,11 +728,252 @@ def search_results(request):
         logger.error(f"Search error: {str(e)}")
         logger.error(traceback.format_exc())
         
-        return JsonResponse({
-            'success': False,
-            'error': str(e),
-            'videos': []
-        }, status=500)
+        if json_response:
+            return JsonResponse({
+                'success': False,
+                'error': str(e),
+                'videos': []
+            }, status=500)
+        
+        return render(request, 'main/search.html', {
+            'query': query,
+            'videos': [],
+            'error': str(e)
+        })
+
+@login_required
+def liked_videos(request):
+    """
+    Displays a grid of videos liked by the user
+    """
+    try:
+        # Get user's likes from database
+        video_likes = VideoLike.objects.filter(
+            user=request.user,
+            is_like=True  # Only get actual likes, not dislikes
+        ).order_by('-created_at')
+        
+        # Get the S3 bucket
+        bucket = get_bucket(BUCKET_NAME)
+        if not bucket:
+            messages.error(request, 'Не удалось подключиться к хранилищу.')
+            return render(request, 'main/liked_videos.html', {'videos': []})
+            
+        client = bucket['client']
+        bucket_name = bucket['name']
+        
+        # Collect liked videos
+        liked_videos = []
+        
+        for like in video_likes:
+            # Get video metadata
+            user_id = like.video_owner
+            video_id = like.video_id
+            
+            try:
+                # Get video metadata from storage
+                metadata_path = f"{user_id}/metadata/{video_id}.json"
+                response = client.get_object(Bucket=bucket_name, Key=metadata_path)
+                metadata = json.loads(response['Body'].read().decode('utf-8'))
+                
+                # Add additional fields needed for display
+                metadata['user_id'] = user_id
+                
+                # Get user profile
+                try:
+                    user_meta_path = f"{user_id}/bio/user_meta.json"
+                    user_response = client.get_object(Bucket=bucket_name, Key=user_meta_path)
+                    user_profile = json.loads(user_response['Body'].read().decode('utf-8'))
+                    
+                    # Add display name and avatar URL if available
+                    if 'display_name' in user_profile:
+                        metadata['display_name'] = user_profile['display_name']
+                    else:
+                        metadata['display_name'] = user_id.replace('@', '')
+                    
+                    # If avatar exists, generate URL
+                    if 'avatar_path' in user_profile:
+                        avatar_key = user_profile['avatar_path']
+                        avatar_url = client.generate_presigned_url(
+                            'get_object',
+                            Params={
+                                'Bucket': bucket_name,
+                                'Key': avatar_key
+                            },
+                            ExpiresIn=3600
+                        )
+                        metadata['avatar_url'] = avatar_url
+                except Exception as e:
+                    logger.error(f"Error fetching user profile for {user_id}: {e}")
+                    metadata['display_name'] = user_id.replace('@', '')
+                
+                # Set channel for compatibility
+                metadata['channel'] = metadata.get('display_name', user_id.replace('@', ''))
+                
+                # Format views
+                views = metadata.get('views', 0)
+                if isinstance(views, (int, str)) and str(views).isdigit():
+                    views = int(views)
+                    metadata['views_formatted'] = f"{views // 1000}K просмотров" if views >= 1000 else f"{views} просмотров"
+                else:
+                    metadata['views_formatted'] = "0 просмотров"
+                
+                # Format upload date
+                upload_date = metadata.get('upload_date', '')
+                if upload_date:
+                    try:
+                        upload_datetime = datetime.fromisoformat(upload_date)
+                        metadata['upload_date_formatted'] = upload_datetime.strftime("%d.%m.%Y")
+                    except Exception:
+                        metadata['upload_date_formatted'] = upload_date[:10] if upload_date else "Недавно"
+                else:
+                    metadata['upload_date_formatted'] = "Недавно"
+                
+                # Generate thumbnail URL if available
+                if 'thumbnail_path' in metadata:
+                    try:
+                        metadata['thumbnail_url'] = generate_video_url(
+                            user_id, 
+                            video_id, 
+                            file_path=metadata['thumbnail_path'], 
+                            expiration_time=3600
+                        )
+                    except Exception as thumb_error:
+                        logger.error(f"Error generating thumbnail URL: {thumb_error}")
+                
+                # Add to list
+                liked_videos.append(metadata)
+                
+            except Exception as e:
+                logger.error(f"Error fetching video metadata for {user_id}/{video_id}: {e}")
+        
+        return render(request, 'main/liked_videos.html', {
+            'videos': liked_videos,
+            'page_title': 'Понравившиеся видео'
+        })
+        
+    except Exception as e:
+        messages.error(request, f'Ошибка при загрузке понравившихся видео: {e}')
+        return render(request, 'main/liked_videos.html', {'videos': []})
+
+@login_required
+def watch_history(request):
+    """
+    Displays a grid of videos recently watched by the user (last 10 videos)
+    """
+    try:
+        # Get user's video views from database
+        video_views = VideoView.objects.filter(
+            user=request.user
+        ).order_by('-viewed_at')[:10]  # Limit to 10 most recent
+        
+        # Get the S3 bucket
+        bucket = get_bucket(BUCKET_NAME)
+        if not bucket:
+            messages.error(request, 'Не удалось подключиться к хранилищу.')
+            return render(request, 'main/history_videos.html', {'videos': []})
+            
+        client = bucket['client']
+        bucket_name = bucket['name']
+        
+        # Collect watched videos
+        watched_videos = []
+        
+        for view in video_views:
+            # Get video metadata
+            user_id = view.video_owner
+            video_id = view.video_id
+            
+            try:
+                # Get video metadata from storage
+                metadata_path = f"{user_id}/metadata/{video_id}.json"
+                response = client.get_object(Bucket=bucket_name, Key=metadata_path)
+                metadata = json.loads(response['Body'].read().decode('utf-8'))
+                
+                # Add additional fields needed for display
+                metadata['user_id'] = user_id
+                
+                # Get user profile
+                try:
+                    user_meta_path = f"{user_id}/bio/user_meta.json"
+                    user_response = client.get_object(Bucket=bucket_name, Key=user_meta_path)
+                    user_profile = json.loads(user_response['Body'].read().decode('utf-8'))
+                    
+                    # Add display name and avatar URL if available
+                    if 'display_name' in user_profile:
+                        metadata['display_name'] = user_profile['display_name']
+                    else:
+                        metadata['display_name'] = user_id.replace('@', '')
+                    
+                    # If avatar exists, generate URL
+                    if 'avatar_path' in user_profile:
+                        avatar_key = user_profile['avatar_path']
+                        avatar_url = client.generate_presigned_url(
+                            'get_object',
+                            Params={
+                                'Bucket': bucket_name,
+                                'Key': avatar_key
+                            },
+                            ExpiresIn=3600
+                        )
+                        metadata['avatar_url'] = avatar_url
+                except Exception as e:
+                    logger.error(f"Error fetching user profile for {user_id}: {e}")
+                    metadata['display_name'] = user_id.replace('@', '')
+                
+                # Set channel for compatibility
+                metadata['channel'] = metadata.get('display_name', user_id.replace('@', ''))
+                
+                # Format views
+                views = metadata.get('views', 0)
+                if isinstance(views, (int, str)) and str(views).isdigit():
+                    views = int(views)
+                    metadata['views_formatted'] = f"{views // 1000}K просмотров" if views >= 1000 else f"{views} просмотров"
+                else:
+                    metadata['views_formatted'] = "0 просмотров"
+                
+                # Format upload date
+                upload_date = metadata.get('upload_date', '')
+                if upload_date:
+                    try:
+                        upload_datetime = datetime.fromisoformat(upload_date)
+                        metadata['upload_date_formatted'] = upload_datetime.strftime("%d.%m.%Y")
+                    except Exception:
+                        metadata['upload_date_formatted'] = upload_date[:10] if upload_date else "Недавно"
+                else:
+                    metadata['upload_date_formatted'] = "Недавно"
+                
+                # Add view date
+                viewed_at = view.viewed_at
+                metadata['viewed_at'] = viewed_at
+                metadata['viewed_at_formatted'] = viewed_at.strftime("%d.%m.%Y %H:%M")
+                
+                # Generate thumbnail URL if available
+                if 'thumbnail_path' in metadata:
+                    try:
+                        metadata['thumbnail_url'] = generate_video_url(
+                            user_id, 
+                            video_id, 
+                            file_path=metadata['thumbnail_path'], 
+                            expiration_time=3600
+                        )
+                    except Exception as thumb_error:
+                        logger.error(f"Error generating thumbnail URL: {thumb_error}")
+                
+                # Add to list
+                watched_videos.append(metadata)
+                
+            except Exception as e:
+                logger.error(f"Error fetching video metadata for {user_id}/{video_id}: {e}")
+        
+        return render(request, 'main/history_videos.html', {
+            'videos': watched_videos,
+            'page_title': 'История просмотров'
+        })
+        
+    except Exception as e:
+        messages.error(request, f'Ошибка при загрузке истории просмотров: {e}')
+        return render(request, 'main/history_videos.html', {'videos': []})
 
 def send_verification_code(request, email):
     # Генерируем код подтверждения (6 цифр)
@@ -1456,7 +1863,7 @@ def channel_view(request, username):
         username: The channel's username (with or without @ prefix)
     """
     try:
-        # Ensure username has @ prefix for GCS storage
+        # Ensure username has @ prefix for S3 storage
         if not username.startswith('@'):
             username = '@' + username
         
@@ -1482,23 +1889,36 @@ def channel_view(request, username):
         videos = []
         total_videos = 0
         
-        # Get the GCS bucket
+        # Get the S3 bucket
         bucket = get_bucket(BUCKET_NAME)
         
         if bucket:
-            # Get metadatafiles for the user
+            client = bucket['client']
+            bucket_name = bucket['name']
+            
+            # Get metadata files for the user
             metadata_prefix = f"{username}/metadata/"
-            metadata_blobs = list(bucket.list_blobs(prefix=metadata_prefix))
+            
+            # List objects with the metadata prefix using pagination
+            paginator = client.get_paginator('list_objects_v2')
+            metadata_objects = []
+            
+            # Get all metadata objects for this user
+            pages = paginator.paginate(Bucket=bucket_name, Prefix=metadata_prefix)
+            for page in pages:
+                if 'Contents' in page:
+                    metadata_objects.extend(page['Contents'])
             
             # Process metadata files
-            for blob in metadata_blobs:
-                if blob.name.endswith('.json'):
+            for obj in metadata_objects:
+                if obj['Key'].endswith('.json'):
                     try:
                         import json
                         from datetime import datetime
                         
                         # Get video metadata
-                        metadata = json.loads(blob.download_as_text())
+                        response = client.get_object(Bucket=bucket_name, Key=obj['Key'])
+                        metadata = json.loads(response['Body'].read().decode('utf-8'))
                         
                         # Add user information
                         metadata['user_id'] = username
@@ -1534,7 +1954,7 @@ def channel_view(request, username):
                         
                         videos.append(metadata)
                     except Exception as e:
-                        logger.error(f"Error processing metadata for {blob.name}: {e}")
+                        logger.error(f"Error processing metadata for {obj['Key']}: {e}")
             
             # Sort videos by upload date (newest first)
             videos.sort(key=lambda x: x.get('upload_date', ''), reverse=True)
@@ -1547,11 +1967,13 @@ def channel_view(request, username):
         if 'stats' not in channel:
             channel['stats'] = {
                 'videos_count': total_videos,
-                'subscribers': 0  # Placeholder since we don't have real subscriber data
+                'subscribers': Subscription.objects.filter(channel_id=username).count()  # Get real subscriber count
             }
         else:
             # Update videos count
             channel['stats']['videos_count'] = total_videos
+            # Add subscribers count
+            channel['stats']['subscribers'] = Subscription.objects.filter(channel_id=username).count()
         
         return render(request, 'main/channel.html', {
             'channel': channel,
