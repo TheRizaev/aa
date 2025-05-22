@@ -1,12 +1,16 @@
 from django.urls import path
 from . import views
 from . import gcs_views 
+from . import ai_views  # Импортируем новые AI views
 from django.conf import settings
 
 urlpatterns = [
     path('', views.index, name='index'),  # Main page
     path('video/<str:video_id>/', views.video_detail, name='video_detail_gcs'),  # Video detail page
+    
+    # Updated channel URL pattern to handle username with @ prefix
     path('channel/<str:username>/', views.channel_view, name='channel'),  # Channel/Author page
+    
     path('search/', views.search_results, name='search_results'),  # Search results page
     path('search-page/', views.search_page, name='search_page'),  # Google-like search page
     path('register/', views.register_view, name='register'),  # Registration page
@@ -45,8 +49,15 @@ urlpatterns = [
     path('api/check-subscription/<str:channel_id>/', views.check_subscription, name='check_subscription'),
     path('api/get-subscriptions/', views.get_subscriptions, name='get_subscriptions'),
     
-    path('liked-videos/', views.liked_videos, name='liked_videos'),
-    path('history/', views.watch_history, name='watch_history'),
+    # AI Chat endpoints
+    path('api/ai-chat/', ai_views.AIChatView.as_view(), name='ai_chat'),
+    path('api/ai-chat-simple/', ai_views.ai_chat_simple, name='ai_chat_simple'),
+    path('api/ai-status/', ai_views.ai_status, name='ai_status'),
+    path('api/ai-chat-stats/', ai_views.get_chat_stats, name='ai_chat_stats'),
+    
+    # Новые endpoints для истории чата
+    path('api/get-chat-history/', ai_views.get_chat_history, name='get_chat_history'),
+    path('api/clear-chat-history/', ai_views.clear_chat_history, name='clear_chat_history'),
 ]
 
 if settings.DEBUG:

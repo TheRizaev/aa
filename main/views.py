@@ -2,6 +2,8 @@
 from django.shortcuts import render, redirect
 from .models import VideoLike, Category, Subscription, VideoView
 import random
+import openai
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from .s3_storage import update_video_metadata, upload_video_with_quality_processing, get_video_metadata, upload_thumbnail, generate_video_url, get_video_url_with_quality, BUCKET_NAME, cache_video_metadata, get_bucket, get_user_profile_from_gcs, get_video_comments, list_user_videos, update_user_profile_in_gcs
 from django.db import transaction
 from django.contrib.auth import authenticate, login, logout
@@ -13,6 +15,7 @@ from .forms import (
     UserRegistrationForm, UserLoginForm, UserProfileForm, 
     AuthorApplicationForm, EmailVerificationForm, DisplayNameForm
 )
+from django.http import StreamingHttpResponse, JsonResponse
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
@@ -2017,3 +2020,254 @@ def get_user_profile(request):
     except Exception as e:
         logger.error(f"Error getting user profile: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    
+@csrf_exempt
+@require_http_methods(["POST"])
+def kronik_ai_chat(request):
+    """
+    Handle AI chat requests with streaming responses
+    """
+    try:
+        # Parse request data
+        data = json.loads(request.body)
+        user_message = data.get('message', '').strip()
+        conversation_history = data.get('conversation_history', [])
+        
+        if not user_message:
+            return JsonResponse({'error': 'Сообщение не может быть пустым'}, status=400)
+        
+        # Set up OpenAI client
+        openai.api_key = getattr(settings, 'OPENAI_API_KEY', None)
+        
+        if not openai.api_key:
+            return JsonResponse({
+                'error': 'OpenAI API ключ не настроен'
+            }, status=500)
+        
+        # Build system prompt based on user context
+        system_prompt = build_system_prompt(request.user)
+        
+        # Prepare messages for OpenAI
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add conversation history (limit to last 10 exchanges to manage token usage)
+        recent_history = conversation_history[-20:] if len(conversation_history) > 20 else conversation_history
+        messages.extend(recent_history)
+        
+        # Add current user message
+        messages.append({"role": "user", "content": user_message})
+        
+        # Create streaming response
+        def generate_response():
+            try:
+                # Call OpenAI API with streaming
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",  # или "gpt-4" если у вас есть доступ
+                    messages=messages,
+                    stream=True,
+                    max_tokens=1000,
+                    temperature=0.7,
+                    top_p=1,
+                    frequency_penalty=0.1,
+                    presence_penalty=0.1
+                )
+                
+                yield "data: " + json.dumps({"type": "start"}) + "\n\n"
+                
+                for chunk in response:
+                    if chunk.choices[0].delta.get('content'):
+                        content = chunk.choices[0].delta.content
+                        yield "data: " + json.dumps({
+                            "type": "content",
+                            "content": content
+                        }) + "\n\n"
+                
+                yield "data: [DONE]\n\n"
+                
+            except openai.error.RateLimitError:
+                yield "data: " + json.dumps({
+                    "type": "error",
+                    "message": "Превышен лимит запросов. Попробуйте через минуту."
+                }) + "\n\n"
+            except openai.error.InvalidRequestError as e:
+                yield "data: " + json.dumps({
+                    "type": "error", 
+                    "message": f"Некорректный запрос: {str(e)}"
+                }) + "\n\n"
+            except Exception as e:
+                logger.error(f"Error in AI chat: {str(e)}")
+                yield "data: " + json.dumps({
+                    "type": "error",
+                    "message": "Произошла ошибка при обработке запроса."
+                }) + "\n\n"
+        
+        response = StreamingHttpResponse(
+            generate_response(),
+            content_type='text/plain; charset=utf-8'
+        )
+        response['Cache-Control'] = 'no-cache'
+        response['Connection'] = 'keep-alive'
+        response['X-Accel-Buffering'] = 'no'  # Для nginx
+        
+        return response
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Некорректный JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Unexpected error in kronik_ai_chat: {str(e)}")
+        return JsonResponse({
+            'error': 'Произошла неожиданная ошибка'
+        }, status=500)
+
+
+def build_system_prompt(user):
+    """
+    Build context-aware system prompt for Kronik AI
+    """
+    base_prompt = """Ты Кроник AI - дружелюбный и умный ИИ-помощник образовательной платформы KRONIK. 
+
+ТВОЯ РОЛЬ:
+- Помогаешь студентам с обучением и ответами на вопросы
+- Объясняешь сложные темы простым языком
+- Мотивируешь к изучению новых предметов
+- Даешь практические советы по учебе
+
+СТИЛЬ ОБЩЕНИЯ:
+- Дружелюбный и поддерживающий
+- Используй эмодзи для выразительности (но умеренно)
+- Отвечай на русском языке
+- Будь конкретным и полезным
+- Если не знаешь точного ответа, честно скажи об этом
+
+СПЕЦИАЛИЗАЦИЯ:
+- Программирование (Python, JavaScript, веб-разработка)
+- Математика (алгебра, геометрия, анализ)
+- Физика (механика, электричество, оптика)
+- Химия (органическая, неорганическая)
+- История и обществознание
+- Изучение языков
+- Подготовка к экзаменам
+
+ОГРАНИЧЕНИЯ:
+- Не помогай с нарушением академической честности
+- Не давай готовые ответы на домашние задания, а объясняй как решать
+- Не обсуждай политические или спорные темы
+- Если вопрос не связан с образованием, мягко переведи разговор в учебное русло"""
+    
+    # Add user-specific context if authenticated
+    if user.is_authenticated:
+        user_context = f"""
+ИНФОРМАЦИЯ О ПОЛЬЗОВАТЕЛЕ:
+- Имя: {user.profile.display_name or user.username}
+- Статус: {"Автор" if hasattr(user, 'profile') and user.profile.is_author else "Студент"}
+"""
+        if hasattr(user, 'profile') and user.profile.expertise_areas.exists():
+            expertise = ", ".join([area.name for area in user.profile.expertise_areas.all()])
+            user_context += f"- Области интересов: {expertise}\n"
+        
+        base_prompt += user_context
+    
+    return base_prompt
+
+
+# Альтернативная версия для старых версий OpenAI библиотеки
+@require_http_methods(["POST"])
+def kronik_ai_chat_legacy(request):
+    """
+    Handle AI chat requests with streaming responses (legacy OpenAI library)
+    """
+    try:
+        # Parse request data
+        data = json.loads(request.body)
+        user_message = data.get('message', '').strip()
+        conversation_history = data.get('conversation_history', [])
+        
+        if not user_message:
+            return JsonResponse({'error': 'Сообщение не может быть пустым'}, status=400)
+        
+        # Set up OpenAI
+        openai.api_key = getattr(settings, 'OPENAI_API_KEY', None)
+        
+        if not openai.api_key:
+            return JsonResponse({
+                'error': 'OpenAI API ключ не настроен'
+            }, status=500)
+        
+        # Build system prompt
+        system_prompt = build_system_prompt(request.user)
+        
+        # Prepare messages
+        messages = [{"role": "system", "content": system_prompt}]
+        recent_history = conversation_history[-20:] if len(conversation_history) > 20 else conversation_history
+        messages.extend(recent_history)
+        messages.append({"role": "user", "content": user_message})
+        
+        # Create streaming response
+        def generate_response():
+            try:
+                # For newer openai library (v1.0+)
+                if hasattr(openai, 'OpenAI'):
+                    client = openai.OpenAI(api_key=openai.api_key)
+                    response = client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=messages,
+                        stream=True,
+                        max_tokens=1000,
+                        temperature=0.7
+                    )
+                    
+                    yield "data: " + json.dumps({"type": "start"}) + "\n\n"
+                    
+                    for chunk in response:
+                        if chunk.choices[0].delta.content:
+                            content = chunk.choices[0].delta.content
+                            yield "data: " + json.dumps({
+                                "type": "content",
+                                "content": content
+                            }) + "\n\n"
+                
+                # For older openai library
+                else:
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=messages,
+                        stream=True,
+                        max_tokens=1000,
+                        temperature=0.7
+                    )
+                    
+                    yield "data: " + json.dumps({"type": "start"}) + "\n\n"
+                    
+                    for chunk in response:
+                        if chunk.choices[0].delta.get('content'):
+                            content = chunk.choices[0].delta.content
+                            yield "data: " + json.dumps({
+                                "type": "content",
+                                "content": content
+                            }) + "\n\n"
+                
+                yield "data: [DONE]\n\n"
+                
+            except Exception as e:
+                logger.error(f"Error in AI chat: {str(e)}")
+                yield "data: " + json.dumps({
+                    "type": "error",
+                    "message": "Произошла ошибка при обработке запроса."
+                }) + "\n\n"
+        
+        response = StreamingHttpResponse(
+            generate_response(),
+            content_type='text/plain; charset=utf-8'
+        )
+        response['Cache-Control'] = 'no-cache'
+        response['Connection'] = 'keep-alive'
+        response['X-Accel-Buffering'] = 'no'
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in kronik_ai_chat: {str(e)}")
+        return JsonResponse({
+            'error': 'Произошла неожиданная ошибка'
+        }, status=500)

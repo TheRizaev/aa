@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{% static 'css/profile-styles.css' %}">
     <link rel="stylesheet" href="{% static 'css/dropdown-styles.css' %}">
     <link rel="stylesheet" href="{% static 'css/fixes.css' %}">
+    <link rel="stylesheet" href="{% static 'css/kronik-ai.css' %}">
     <!-- Add studio.css if we're on the studio page -->
     {% if request.path == '/studio/' %}
     <link rel="stylesheet" href="{% static 'css/studio.css' %}">
@@ -186,14 +187,13 @@
             </div>
             {% endif %}
             
-            
             <div class="sidebar-section">
                 <div class="sidebar-title">ВЫ</div>
-                <div class="menu-item {% if request.path == '/liked-videos/' %}active{% endif %}" onclick="window.location.href='{% url 'liked_videos' %}'">
+                <div class="menu-item">
                     <div class="menu-icon"><img src="/static/icons/like.svg" alt="Понравившиеся" width="24" height="24"></div>
                     <div class="menu-text">Понравившиеся</div>
                 </div>
-                <div class="menu-item {% if request.path == '/history/' %}active{% endif %}" onclick="window.location.href='{% url 'watch_history' %}'">
+                <div class="menu-item">
                     <div class="menu-icon"><img src="/static/icons/timer.svg" alt="История" width="24" height="24"></div>
                     <div class="menu-text">История просмотров</div>
                 </div>
@@ -229,11 +229,91 @@
         </div>
     </div>
     
+    <!-- AI Chat Button -->
+    <div class="kronik-ai-button" id="kronik-ai-button">
+        <div class="kronik-ai-icon">
+            <img src="{% static 'Kronik-Light1.png' %}" alt="Kronik AI" width="30" height="30">
+        </div>
+        <div class="kronik-ai-pulse"></div>
+    </div>
+    
+    <div class="ai-chat-button" id="ai-chat-button">
+        <div class="ai-chat-icon">
+            <span class="kronik-logo">K</span>
+        </div>
+        <div class="ai-chat-pulse"></div>
+    </div>
+
+    <!-- AI Chat Interface -->
+    <div class="ai-chat-overlay" id="ai-chat-overlay">
+        <div class="ai-chat-container" id="ai-chat-container">
+            <div class="ai-chat-header">
+                <div class="ai-chat-title">
+                    <div class="ai-avatar">
+                        <span class="kronik-logo">
+
+                        </span>
+                    </div>
+                    <div class="ai-title-text">
+                        <h3>Кроник ИИ</h3>
+                        <p>Ваш образовательный помощник</p>
+                    </div>
+                </div>
+                <div class="ai-chat-controls">
+                    <button class="ai-chat-expand" id="ai-chat-expand" title="Развернуть на весь экран">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <button class="ai-chat-close" id="ai-chat-close" title="Закрыть чат">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="ai-chat-messages" id="ai-chat-messages">
+                <div class="ai-message">
+                    <div class="ai-avatar">
+                        <span class="kronik-logo">K</span>
+                    </div>
+                    <div class="message-content">
+                        <p>Привет! Я <strong>Кроник ИИ</strong>, ваш персональный образовательный помощник. Я могу помочь вам с изучением различных предметов, объяснить сложные концепции и ответить на ваши вопросы.</p>
+                        <p>О чем хотели бы поговорить?</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ai-chat-input-container">
+                <div class="ai-chat-input-wrapper">
+                    <textarea 
+                        id="ai-chat-input" 
+                        placeholder="Задайте вопрос Кронику..."
+                        rows="1"
+                    ></textarea>
+                    <button class="ai-chat-send" id="ai-chat-send" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="ai-chat-footer">
+                    <p>Кроник ИИ может допускать ошибки. Проверяйте важную информацию.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="{% static 'js/main.js' %}"></script>
     <script src="{% static 'js/search.js' %}"></script>
+    <script src="{% static 'js/kronik-ai.js' %}"></script>
+    <script src="{% static 'js/markdown-parser.js' %}"></script>
+    <script src="{% static 'js/base.js' %}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
+
 <style>
 /* Subscriptions menu styles */
 .subscriptions-toggle {
@@ -277,11 +357,11 @@
 }
 
 .subscription-item:hover {
-    background-color: rgba(37, 39, 159, 0.1);
+    background-color: rgba(159, 37, 88, 0.1);
 }
 
 .dark-theme .subscription-item:hover {
-    background-color: rgba(37, 39, 159, 0.2);
+    background-color: rgba(159, 37, 88, 0.2);
 }
 
 .subscription-avatar {
@@ -358,7 +438,644 @@
 .subscription-item:nth-child(8) { animation-delay: 0.35s; }
 .subscription-item:nth-child(9) { animation-delay: 0.4s; }
 .subscription-item:nth-child(10) { animation-delay: 0.45s; }
+
+
+.clear-history-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 6px;
+    color: var(--gray-color);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.clear-history-btn:hover {
+    background: rgba(255, 71, 87, 0.1);
+    color: #ff4757;
+    opacity: 1;
+}
+
+/* Сообщения из истории (без анимации) */
+.from-history {
+    animation: none !important;
+    opacity: 0.85;
+}
+
+.from-history .message-content {
+    opacity: 0.9;
+}
+
+/* Индикатор загрузки истории */
+.history-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    color: var(--gray-color);
+    font-style: italic;
+}
+
+.history-loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(159, 37, 88, 0.2);
+    border-top: 2px solid var(--accent-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Разделитель истории */
+.history-separator {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    text-align: center;
+    color: var(--gray-color);
+    font-size: 12px;
+}
+
+.history-separator::before,
+.history-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(159, 37, 88, 0.2);
+}
+
+.history-separator span {
+    padding: 0 15px;
+    background: var(--light-bg);
+}
+
+.dark-theme .history-separator span {
+    background: var(--dark-bg);
+}
+
+/* Уведомление о необходимости авторизации */
+.auth-required-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-color);
+}
+
+.auth-required-message h3 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.auth-required-message .auth-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.auth-required-message .auth-btn {
+    padding: 10px 20px;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.auth-required-message .login-btn {
+    background: var(--accent-color);
+    color: white;
+}
+
+.auth-required-message .register-btn {
+    background: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+
+.auth-required-message .auth-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+}
+
+/* Скрытие кнопки чата для неавторизованных */
+.ai-chat-button.hidden {
+    display: none !important;
+}
+
+/* Статус истории чата */
+.chat-status {
+    padding: 8px 12px;
+    background: rgba(159, 37, 88, 0.1);
+    border-radius: 8px;
+    margin: 10px 0;
+    font-size: 12px;
+    color: var(--gray-color);
+    text-align: center;
+}
+
+/* Счетчик сообщений */
+.message-counter {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+/* Анимация для новых сообщений */
+@keyframes newMessage {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.ai-message:not(.from-history),
+.user-message:not(.from-history) {
+    animation: newMessage 0.3s ease-out;
+}
+
+/* Улучшенные стили для контекстного меню */
+.context-menu {
+    position: absolute;
+    background: var(--light-bg);
+    border: 1px solid rgba(159, 37, 88, 0.2);
+    border-radius: 8px;
+    padding: 5px 0;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    z-index: 10000;
+    min-width: 150px;
+}
+
+.dark-theme .context-menu {
+    background: var(--medium-bg);
+    border-color: rgba(159, 37, 88, 0.3);
+}
+
+.context-menu-item {
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.context-menu-item:hover {
+    background: rgba(159, 37, 88, 0.1);
+}
+
+.context-menu-item svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Адаптивные стили для истории */
+@media (max-width: 768px) {
+    .clear-history-btn {
+        font-size: 11px;
+        padding: 4px 6px;
+    }
+    
+    .clear-history-btn span {
+        display: none;
+    }
+    
+    .history-separator {
+        margin: 15px 0;
+    }
+    
+    .auth-required-message .auth-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+
+
+
+
+
+
+.login-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.login-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.login-modal-content {
+    background: var(--light-bg);
+    border-radius: 20px;
+    padding: 0;
+    max-width: 90%;
+    width: 450px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    position: relative;
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.dark-theme .login-modal-content {
+    background: var(--dark-bg);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.login-modal-overlay.active .login-modal-content {
+    transform: scale(1) translateY(0);
+}
+
+.login-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gray-color);
+    transition: all 0.2s ease;
+    z-index: 1;
+    padding: 5px;
+    border-radius: 50%;
+}
+
+.login-modal-close:hover {
+    background: rgba(159, 37, 88, 0.1);
+    color: var(--primary-color);
+}
+
+.login-modal-body {
+    padding: 40px 30px 30px;
+    text-align: center;
+}
+
+.ai-avatar-large {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #9f2558, #c1316d);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    box-shadow: 0 10px 30px rgba(159, 37, 88, 0.3);
+}
+
+.ai-avatar-large .kronik-logo {
+    color: white;
+    font-size: 36px;
+    font-weight: bold;
+}
+
+.login-modal-body h3 {
+    color: var(--primary-color);
+    font-size: 24px;
+    margin: 0 0 15px 0;
+    font-weight: 600;
+}
+
+.login-modal-body p {
+    color: var(--gray-color);
+    font-size: 16px;
+    line-height: 1.5;
+    margin: 0 0 30px 0;
+}
+
+.login-modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.login-modal-btn {
+    padding: 12px 24px;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    display: inline-block;
+    min-width: 120px;
+}
+
+.login-modal-btn.login-btn {
+    background: var(--accent-color);
+    color: white;
+    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.3);
+}
+
+.login-modal-btn.register-btn {
+    background: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+
+.login-modal-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(159, 37, 88, 0.4);
+}
+
+.login-modal-btn.register-btn:hover {
+    background: rgba(159, 37, 88, 0.1);
+}
+
+.login-modal-features {
+    background: rgba(159, 37, 88, 0.05);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: left;
+}
+
+.dark-theme .login-modal-features {
+    background: rgba(159, 37, 88, 0.1);
+}
+
+.login-modal-features h4 {
+    color: var(--primary-color);
+    font-size: 18px;
+    margin: 0 0 15px 0;
+    text-align: center;
+}
+
+.login-modal-features ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.login-modal-features li {
+    padding: 8px 0;
+    font-size: 15px;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dark-theme .login-modal-features li {
+    color: var(--text-light);
+}
+
+/* Улучшенные стили для разделителей истории */
+.history-separator {
+    display: flex;
+    align-items: center;
+    margin: 25px 0;
+    text-align: center;
+    color: var(--gray-color);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.history-separator::before,
+.history-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(159, 37, 88, 0.3), transparent);
+}
+
+.history-separator span {
+    padding: 0 20px;
+    background: var(--light-bg);
+    border-radius: 15px;
+    border: 1px solid rgba(159, 37, 88, 0.1);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.dark-theme .history-separator span {
+    background: var(--dark-bg);
+    border-color: rgba(159, 37, 88, 0.2);
+}
+
+/* Улучшенные стили для сообщений из истории */
+.from-history {
+    animation: none !important;
+    opacity: 0.8;
+    position: relative;
+}
+
+.from-history::before {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, rgba(159, 37, 88, 0.3), rgba(159, 37, 88, 0.1));
+    border-radius: 3px;
+}
+
+.from-history .message-content {
+    opacity: 0.9;
+    border: 1px solid rgba(159, 37, 88, 0.1);
+}
+
+.dark-theme .from-history .message-content {
+    border-color: rgba(159, 37, 88, 0.15);
+}
+
+/* Улучшенный индикатор загрузки истории */
+.history-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px 20px;
+    color: var(--gray-color);
+    font-style: italic;
+    background: rgba(159, 37, 88, 0.03);
+    border-radius: 15px;
+    margin: 20px 0;
+}
+
+.dark-theme .history-loading {
+    background: rgba(159, 37, 88, 0.08);
+}
+
+.history-loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(159, 37, 88, 0.2);
+    border-top: 3px solid var(--accent-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 12px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Адаптивные стили для модального окна */
+@media (max-width: 768px) {
+    .login-modal-content {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .login-modal-body {
+        padding: 30px 20px 25px;
+    }
+    
+    .ai-avatar-large {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 15px;
+    }
+    
+    .ai-avatar-large .kronik-logo {
+        font-size: 28px;
+    }
+    
+    .login-modal-body h3 {
+        font-size: 20px;
+    }
+    
+    .login-modal-body p {
+        font-size: 14px;
+    }
+    
+    .login-modal-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .login-modal-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+    
+    .login-modal-features {
+        padding: 15px;
+    }
+    
+    .login-modal-features h4 {
+        font-size: 16px;
+    }
+    
+    .login-modal-features li {
+        font-size: 14px;
+        padding: 6px 0;
+    }
+}
+
+/* Анимация появления для новых сообщений */
+@keyframes slideInMessage {
+    from {
+        opacity: 0;
+        transform: translateY(15px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.ai-message:not(.from-history):not(.typing-message),
+.user-message:not(.from-history) {
+    animation: slideInMessage 0.4s ease-out;
+}
+
+/* Улучшенная кнопка очистки истории */
+.clear-history-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: var(--gray-color);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    opacity: 0.7;
+    font-weight: 500;
+}
+
+.clear-history-btn:hover {
+    background: rgba(255, 71, 87, 0.1);
+    color: #ff4757;
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.clear-history-btn svg {
+    transition: transform 0.2s ease;
+}
+
+.clear-history-btn:hover svg {
+    transform: scale(1.1);
+}
+
+/* Счетчик сообщений в истории */
+.history-counter {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(159, 37, 88, 0.3);
+}
+
+
+
+
+
+
+
 </style>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const notificationButton = document.querySelector('.notification-icon');
@@ -379,87 +1096,82 @@
                 }
             });
         }
+
         const subscriptionsToggle = document.getElementById('subscriptions-toggle');
-    const subscriptionsList = document.getElementById('subscriptions-list');
-    
-    // Only initialize if elements exist and user is authenticated
-    if (subscriptionsToggle && subscriptionsList) {
-        let subscriptionsLoaded = false;
+        const subscriptionsList = document.getElementById('subscriptions-list');
         
-        // Toggle subscriptions list
-        subscriptionsToggle.addEventListener('click', function() {
-            subscriptionsToggle.classList.toggle('active');
-            subscriptionsList.classList.toggle('show');
+        // Only initialize if elements exist and user is authenticated
+        if (subscriptionsToggle && subscriptionsList {% if user.is_authenticated %} && true {% else %} && false {% endif %}) {
+            let subscriptionsLoaded = false;
             
-            // Load subscriptions if not loaded yet
-            if (!subscriptionsLoaded) {
-                loadSubscriptions();
-                subscriptionsLoaded = true;
-            }
-        });
-        
-        // Function to load subscriptions
-        function loadSubscriptions() {
-            fetch('/api/get-subscriptions/')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.subscriptions) {
-                        renderSubscriptions(data.subscriptions);
-                    } else {
+            // Toggle subscriptions list
+            subscriptionsToggle.addEventListener('click', function() {
+                subscriptionsToggle.classList.toggle('active');
+                subscriptionsList.classList.toggle('show');
+                
+                // Load subscriptions if not loaded yet
+                if (!subscriptionsLoaded) {
+                    loadSubscriptions();
+                    subscriptionsLoaded = true;
+                }
+            });
+            
+            // Function to load subscriptions
+            function loadSubscriptions() {
+                fetch('/api/get-subscriptions/')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.subscriptions) {
+                            renderSubscriptions(data.subscriptions);
+                        } else {
+                            showNoSubscriptions();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading subscriptions:', error);
                         showNoSubscriptions();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading subscriptions:', error);
-                    showNoSubscriptions();
-                });
-        }
-        
-        // Function to render subscriptions
-        function renderSubscriptions(subscriptions) {
-            subscriptionsList.innerHTML = '';
-            
-            if (subscriptions.length === 0) {
-                showNoSubscriptions();
-                return;
+                    });
             }
             
-            subscriptions.forEach((subscription, index) => {
-                const item = document.createElement('div');
-                item.className = 'subscription-item';
+            // Function to render subscriptions
+            function renderSubscriptions(subscriptions) {
+                subscriptionsList.innerHTML = '';
                 
-                // Create a direct link to the channel
-                const channelUrl = `/channel/${subscription.channel_id}/`;
-                
-                // Determine avatar content
-                let avatarContent = '';
-                if (subscription.avatar_url) {
-                    avatarContent = `<img src="${subscription.avatar_url}" alt="${subscription.display_name}">`;
-                } else {
-                    avatarContent = subscription.display_name.charAt(0);
+                if (subscriptions.length === 0) {
+                    showNoSubscriptions();
+                    return;
                 }
                 
-                // Create HTML with direct link
-                item.innerHTML = `
-                    <a href="${channelUrl}" style="display: flex; align-items: center; width: 100%; text-decoration: none; color: inherit;">
+                subscriptions.forEach(subscription => {
+                    const item = document.createElement('div');
+                    item.className = 'subscription-item';
+                    item.onclick = function() {
+                        window.location.href = `/channel/${subscription.channel_id}/`;
+                    };
+                    
+                    // Determine avatar content - use avatar_url if available
+                    let avatarContent = '';
+                    if (subscription.avatar_url) {
+                        avatarContent = `<img src="${subscription.avatar_url}" alt="${subscription.display_name}">`;
+                    } else {
+                        avatarContent = subscription.display_name.charAt(0);
+                    }
+                    
+                    item.innerHTML = `
                         <div class="subscription-avatar">${avatarContent}</div>
                         <div class="subscription-name">${subscription.display_name}</div>
-                    </a>
+                    `;
+                    
+                    subscriptionsList.appendChild(item);
+                });
+            }
+            
+            // Function to show no subscriptions message
+            function showNoSubscriptions() {
+                subscriptionsList.innerHTML = `
+                    <div class="no-subscriptions">У вас пока нет подписок</div>
                 `;
-                
-                // Add animation delay based on index
-                item.style.animationDelay = `${index * 0.05}s`;
-                
-                subscriptionsList.appendChild(item);
-            });
+            }
         }
-        
-        // Function to show no subscriptions message
-        function showNoSubscriptions() {
-            subscriptionsList.innerHTML = `
-                <div class="no-subscriptions">У вас пока нет подписок</div>
-            `;
-        }
-    }
     });
 </script>
