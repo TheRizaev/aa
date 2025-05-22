@@ -177,13 +177,6 @@
     display: inline-block;
 }
 
-.search-heading::after {
-    content: "🐰";
-    margin-left: 10px;
-    font-size: 1.2rem;
-    animation: hop 1s infinite;
-}
-
 .search-query {
     font-weight: normal;
     color: var(--gray-color);
@@ -242,7 +235,7 @@
 }
 
 .dark-theme .search-result-item {
-    background-color: rgba(42, 18, 23, 0.7);
+    background-color: rgba(18, 20, 42, 0.7);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 

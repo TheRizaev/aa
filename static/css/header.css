@@ -137,5 +137,5 @@ header {
 .register-button:hover {
     background-color: #1f2f4a;
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
+    box-shadow: 0 8px 20px rgba(37, 47, 159, 0.4);
 }

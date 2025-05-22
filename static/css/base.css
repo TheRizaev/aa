@@ -2,10 +2,10 @@
 :root {
     --primary-color: #4043b3; /* Основной цвет кролика KRONIK - насыщенный розовый */
     --secondary-color: #01ffcc; /* Светло-розовый цвет для акцентов */
-    --dark-bg: #010e11; /* Тёмный фон */
+    --dark-bg: #04181c; /* Тёмный фон */
     --medium-bg: #07181f; /* Промежуточный темный фон */
     --light-bg: #fff8fa; /* Светлый фон с розовым оттенком */
-    --accent-color: #4469a4; /* Акцентный цвет для кнопок и важных элементов */
+    --accent-color: #5582ca; /* Акцентный цвет для кнопок и важных элементов */
     --text-light: #fff8fa; /* Цвет текста на темном фоне */
     --text-dark: #110108; /* Цвет текста на светлом фоне */
     --gray-color: #7a6563; /* Приглушенный коричневато-серый */
@@ -139,7 +139,7 @@ body.dark-theme {
 .btn-primary:hover {
     background-color: #1f2f4a;
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
+    box-shadow: 0 8px 20px rgba(37, 47, 159, 0.4);
 }
 
 .btn-secondary {

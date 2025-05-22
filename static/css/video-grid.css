@@ -132,8 +132,8 @@
     display: flex;
     gap: 0.8rem;
     overflow-x: auto;
-    padding: 0.8rem 0;
-    margin-bottom: 1rem;
+    padding: 0.8rem 1.3rem;
+    margin-bottom: 0.2rem;
     scrollbar-width: thin;
     scroll-behavior: smooth; /* Плавная прокрутка */
     -webkit-overflow-scrolling: touch; /* Улучшает прокрутку на iOS */
@@ -356,12 +356,12 @@
 }
 
 .dark-theme .channel-name {
-    color: rgba(255, 176, 201, 0.9) !important; /* Lighter pink for dark theme */
+    color: rgba(116, 195, 251, 0.9) !important; /* Lighter pink for dark theme */
 }
 
 .channel-name:hover {
-    color: var(--primary-color) !important;
-    text-decoration: underline;
+    color: var(--accent-color) !important;
+    text-decoration: none !important;
 }
 
 .video-stats {

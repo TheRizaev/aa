@@ -59,7 +59,7 @@
 .upload-button:hover {
     background-color: #1f2f4a;
     transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
+    box-shadow: 0 8px 20px rgba(37, 47, 159, 0.4);
 }
 
 /* Studio Tabs */
@@ -217,7 +217,7 @@
 }
 
 .dark-theme .studio-video-item {
-    background-color: rgba(42, 18, 23, 0.7);
+    background-color: rgba(18, 20, 42, 0.7);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
@@ -418,7 +418,7 @@
 }
 
 .dark-theme .analytics-card {
-    background-color: rgba(42, 18, 23, 0.7);
+    background-color: rgba(18, 20, 42, 0.7);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
@@ -465,7 +465,7 @@
 }
 
 .dark-theme .analytics-chart-container {
-    background-color: rgba(42, 18, 23, 0.7);
+    background-color: rgba(18, 20, 42, 0.7);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
@@ -668,7 +668,7 @@
 .upload-submit-btn:hover {
     background-color: #1f2f4a;
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
+    box-shadow: 0 8px 20px rgba(37, 47, 159, 0.4);
 }
 
 .upload-cancel-btn {
@@ -786,7 +786,7 @@
 .close-success-btn:hover {
     background-color: #1f2f4a;
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
+    box-shadow: 0 8px 20px rgba(37, 47, 159, 0.4);
 }
 
 /* Монетизация */
@@ -810,7 +810,7 @@
 }
 
 .dark-theme .monetization-status {
-    background-color: rgba(42, 18, 23, 0.7);
+    background-color: rgba(18, 20, 42, 0.7);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
@@ -1024,7 +1024,7 @@
 }
 
 .dark-theme .processing-step {
-    background-color: rgba(42, 18, 23, 0.7);
+    background-color: rgba(18, 20, 42, 0.7);
 }
 
 .processing-step:hover {

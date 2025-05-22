@@ -1,5 +1,3 @@
-// static/js/ai-chat-fixed.js - Исправленный JavaScript с сохранением истории
-
 document.addEventListener('DOMContentLoaded', function() {
     // Simple Markdown parser
     function parseMarkdown(text) {
@@ -69,9 +67,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const aiChatInput = document.getElementById('ai-chat-input');
     const aiChatSend = document.getElementById('ai-chat-send');
     const aiChatMessages = document.getElementById('ai-chat-messages');
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
 
-    if (!aiChatButton || !aiChatOverlay || !aiChatInput || !aiChatSend || !aiChatMessages) {
-        console.log('AI Chat elements not found, skipping initialization');
+    // Проверяем, что элементы существуют
+    if (!aiChatButton) {
+        console.log('AI Chat button not found, user might not be authenticated');
         return;
     }
 
@@ -132,17 +132,17 @@ document.addEventListener('DOMContentLoaded', function() {
         return modal;
     }
 
-    // Создаем модальное окно
-    const loginModal = createLoginModal();
-
     // Показ сообщения авторизации
     function showLoginMessage() {
-        loginModal.classList.add('active');
+        if (!window.userAuthenticated) {
+            const loginModal = createLoginModal();
+            loginModal.classList.add('active');
+        }
     }
 
     // Загрузка истории чата при открытии
     async function loadChatHistory() {
-        if (historyLoaded) return;
+        if (historyLoaded || !window.userAuthenticated) return;
         
         try {
             // Показываем индикатор загрузки
@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
         aiChatMessages.appendChild(messageDiv);
     }
 
-    // Open chat - обновленная функция
+    // Open chat - только для авторизованных пользователей
     aiChatButton.addEventListener('click', function() {
         // Проверяем авторизацию
         if (!window.userAuthenticated) {
@@ -253,19 +253,27 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        aiChatOverlay.classList.add('active');
-        
-        // Загружаем историю при первом открытии
-        if (!historyLoaded) {
-            loadChatHistory();
+        // Если есть оверлей чата, открываем его
+        if (aiChatOverlay) {
+            aiChatOverlay.classList.add('active');
+            
+            // Загружаем историю при первом открытии
+            if (!historyLoaded) {
+                loadChatHistory();
+            }
+            
+            setTimeout(() => {
+                if (aiChatInput) {
+                    aiChatInput.focus();
+                }
+            }, 300);
+        } else {
+            // Если оверлея нет, показываем сообщение о входе
+            showLoginMessage();
         }
-        
-        setTimeout(() => {
-            aiChatInput.focus();
-        }, 300);
     });
 
-    // Close chat
+    // Остальные обработчики событий только если элементы существуют
     if (aiChatClose) {
         aiChatClose.addEventListener('click', function() {
             aiChatOverlay.classList.remove('active');
@@ -311,43 +319,55 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Close on overlay click
-    aiChatOverlay.addEventListener('click', function(e) {
-        if (e.target === aiChatOverlay) {
-            aiChatOverlay.classList.remove('active');
-            if (isExpanded) {
-                toggleExpanded();
+    if (aiChatOverlay) {
+        aiChatOverlay.addEventListener('click', function(e) {
+            if (e.target === aiChatOverlay) {
+                aiChatOverlay.classList.remove('active');
+                if (isExpanded) {
+                    toggleExpanded();
+                }
             }
-        }
-    });
+        });
+    }
 
     // Handle input changes
-    aiChatInput.addEventListener('input', function() {
-        adjustTextareaHeight();
-        toggleSendButton();
-    });
+    if (aiChatInput) {
+        aiChatInput.addEventListener('input', function() {
+            adjustTextareaHeight();
+            toggleSendButton();
+        });
 
-    // Handle enter key
-    aiChatInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
+        // Handle enter key
+        aiChatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
 
     // Send button click
-    aiChatSend.addEventListener('click', sendMessage);
+    if (aiChatSend) {
+        aiChatSend.addEventListener('click', sendMessage);
+    }
 
     function adjustTextareaHeight() {
-        aiChatInput.style.height = 'auto';
-        aiChatInput.style.height = Math.min(aiChatInput.scrollHeight, 120) + 'px';
+        if (aiChatInput) {
+            aiChatInput.style.height = 'auto';
+            aiChatInput.style.height = Math.min(aiChatInput.scrollHeight, 120) + 'px';
+        }
     }
 
     function toggleSendButton() {
-        const hasText = aiChatInput.value.trim().length > 0;
-        aiChatSend.disabled = !hasText || isTyping;
+        if (aiChatSend && aiChatInput) {
+            const hasText = aiChatInput.value.trim().length > 0;
+            aiChatSend.disabled = !hasText || isTyping;
+        }
     }
 
     function addMessage(content, isUser = false, useMarkdown = true) {
+        if (!aiChatMessages) return null;
+
         const messageDiv = document.createElement('div');
         messageDiv.className = isUser ? 'user-message' : 'ai-message';
         
@@ -381,6 +401,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function addTypingIndicator() {
+        if (!aiChatMessages) return null;
+
         const typingDiv = document.createElement('div');
         typingDiv.className = 'ai-message typing-message';
         typingDiv.innerHTML = `
@@ -408,14 +430,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function sendMessage() {
-        const message = aiChatInput.value.trim();
-        if (!message || isTyping) return;
-
-        // Проверяем авторизацию перед отправкой
-        if (!window.userAuthenticated) {
-            showLoginMessage();
+        if (!aiChatInput || !window.userAuthenticated) {
+            if (!window.userAuthenticated) {
+                showLoginMessage();
+            }
             return;
         }
+
+        const message = aiChatInput.value.trim();
+        if (!message || isTyping) return;
 
         // Add user message (no markdown processing for user messages)
         addMessage(message, true, false);
@@ -498,7 +521,10 @@ document.addEventListener('DOMContentLoaded', function() {
     async function handleStreamingResponse(response) {
         // Create AI message container with empty content
         const aiMessageDiv = addMessage('', false, false);
+        if (!aiMessageDiv) return;
+
         const messageContent = aiMessageDiv.querySelector('.message-content');
+        if (!messageContent) return;
         
         // Read the stream
         const reader = response.body.getReader();
@@ -592,16 +618,18 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (data.success) {
                 // Очищаем интерфейс
-                aiChatMessages.innerHTML = `
-                    <div class="ai-message">
-                        <div class="ai-avatar">
-                            <span class="kronik-logo">K</span>
+                if (aiChatMessages) {
+                    aiChatMessages.innerHTML = `
+                        <div class="ai-message">
+                            <div class="ai-avatar">
+                                <span class="kronik-logo">K</span>
+                            </div>
+                            <div class="message-content">
+                                <p>История чата очищена. Привет! Я <strong>Кроник ИИ</strong>, ваш персональный образовательный помощник.</p>
+                            </div>
                         </div>
-                        <div class="message-content">
-                            <p>История чата очищена. Привет! Я <strong>Кроник ИИ</strong>, ваш персональный образовательный помощник.</p>
-                        </div>
-                    </div>
-                `;
+                    `;
+                }
                 
                 // Сбрасываем флаг загрузки истории
                 historyLoaded = false;
@@ -616,32 +644,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Добавляем кнопку очистки истории только для авторизованных
-    function addClearHistoryButton() {
-        if (!window.userAuthenticated) {
-            return; // Не добавляем кнопку для неавторизованных
-        }
-
-        const clearButton = document.createElement('button');
-        clearButton.className = 'clear-history-btn';
-        clearButton.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>Очистить историю</span>
-        `;
-        clearButton.title = 'Очистить всю историю чата';
-        clearButton.onclick = clearChatHistory;
-        
-        // Добавляем кнопку в заголовок чата
-        const chatControls = document.querySelector('.ai-chat-controls');
-        if (chatControls) {
-            chatControls.insertBefore(clearButton, chatControls.firstChild);
-        }
+    // Добавляем обработчик для кнопки очистки истории
+    if (clearHistoryBtn) {
+        clearHistoryBtn.addEventListener('click', clearChatHistory);
     }
-
-    // Добавляем кнопку очистки только для авторизованных
-    addClearHistoryButton();
 
     // Helper function to get CSRF token
     function getCsrfToken() {
@@ -690,7 +696,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle window resize for expanded mode
     window.addEventListener('resize', function() {
-        if (isExpanded) {
+        if (isExpanded && aiChatMessages) {
             setTimeout(() => {
                 aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
             }, 100);
@@ -698,7 +704,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Auto-focus input when chat becomes visible (только для авторизованных)
-    if (window.userAuthenticated) {
+    if (window.userAuthenticated && aiChatOverlay && aiChatInput) {
         const observer = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
@@ -718,27 +724,33 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(e) {
         // Close chat with Escape key
         if (e.key === 'Escape') {
-            if (aiChatOverlay.classList.contains('active')) {
+            if (aiChatOverlay && aiChatOverlay.classList.contains('active')) {
                 aiChatOverlay.classList.remove('active');
                 if (isExpanded) {
                     toggleExpanded();
                 }
             }
-            if (loginModal.classList.contains('active')) {
+            // Закрытие модального окна входа
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal && loginModal.classList.contains('active')) {
                 loginModal.classList.remove('active');
             }
         }
         
-        // Ctrl/Cmd + K to open chat
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k' && !aiChatOverlay.classList.contains('active')) {
-            e.preventDefault();
-            aiChatButton.click();
+        // Ctrl/Cmd + K to open chat (только для авторизованных)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k' && window.userAuthenticated) {
+            if (!aiChatOverlay || !aiChatOverlay.classList.contains('active')) {
+                e.preventDefault();
+                aiChatButton.click();
+            }
         }
         
         // Ctrl/Cmd + Enter to expand/collapse when chat is open (только для авторизованных)
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && aiChatOverlay.classList.contains('active') && window.userAuthenticated) {
-            e.preventDefault();
-            toggleExpanded();
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && window.userAuthenticated) {
+            if (aiChatOverlay && aiChatOverlay.classList.contains('active')) {
+                e.preventDefault();
+                toggleExpanded();
+            }
         }
     });
 });

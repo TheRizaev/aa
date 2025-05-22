@@ -24,7 +24,7 @@
 }
 
 .dark-theme .profile-header {
-    background-color: rgba(42, 18, 23, 0.7);
+    background-color: rgba(18, 20, 42, 0.7);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
@@ -80,7 +80,7 @@
 }
 
 .dark-theme .profile-section {
-    background-color: rgba(42, 18, 23, 0.7);
+    background-color: rgba(18, 20, 42, 0.7);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
@@ -159,7 +159,7 @@
 .profile-save-button:hover {
     background-color: #1f2f4a;
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(159, 37, 88, 0.4);
+    box-shadow: 0 8px 20px rgba(37, 47, 159, 0.4);
 }
 
 /* Стили для аватарок */
