@@ -175,3 +175,57 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Email администратора для получения заявок
 ADMIN_EMAIL = 'rizaevamir9@gmail.com'  # Замените на свой email
+VOSK_MODEL_PATH = os.path.join(BASE_DIR, 'models', 'vosk-model-ru')
+OPENAI_API_KEY = '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'
+
+# AI Chat настройки
+AI_CHAT_SETTINGS = {
+    'MODEL': 'gpt-4',  # Или 'gpt-4' для лучшего качества
+    'MAX_TOKENS': 1000,
+    'TEMPERATURE': 0.7,
+    'STREAM_TIMEOUT': 30,  # Таймаут для streaming в секундах
+    'MAX_MESSAGES_PER_SESSION': 50,  # Максимум сообщений в сессии
+    'RATE_LIMIT_PER_MINUTE': 20,  # Лимит запросов в минуту на пользователя
+    'MAX_HISTORY_MESSAGES': 100,  # Максимум сообщений в истории
+    'CONTEXT_MESSAGES': 10,       # Сообщений для контекста ИИ
+    'AUTO_CLEANUP': True,         # Автоочистка старых сообщений
+}
+
+# Логирование для AI чата
+LOGGING['loggers']['main.ai_views'] = {
+    'handlers': ['file'],
+    'level': 'DEBUG',
+    'propagate': True,
+}
+
+# CSRF настройки для AI API
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    # Добавьте ваш домен в продакшене
+]
+
+# Для разработки - разрешить CORS для локальных запросов
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_CREDENTIALS = True
+    
+# Кэширование для AI ответов (опционально)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    },
+    'ai_cache': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'ai-responses',
+        'TIMEOUT': 300,  # 5 минут
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
+    }
+}
+
+# Настройки для ограничения скорости запросов (rate limiting)
+RATE_LIMIT_ENABLE = True
+RATE_LIMIT_USE_CACHE = 'default'
