@@ -175,7 +175,7 @@
 }
 
 .ai-chat-expand:hover, .ai-chat-close:hover {
-    background: rgba(159, 37, 88, 0.1);
+    background: rgba(37, 80, 159, 0.1);
     color: var(--primary-color);
 }
 

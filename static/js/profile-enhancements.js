@@ -94,7 +94,7 @@ function initProfileImageHandling() {
             }
             
             .profile-avatar:hover {
-                box-shadow: 0 8px 25px rgba(159, 37, 88, 0.4);
+                box-shadow: 0 8px 25px rgba(41, 37, 159, 0.4);
             }
             
             .avatar-upload-interface {

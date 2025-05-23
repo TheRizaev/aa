@@ -456,9 +456,64 @@ function setupSidebar() {
     
     if (!sidebarToggle || !sidebar || !mainContainer) return;
     
+    // Загружаем сохраненное состояние сайдбара
+    const savedSidebarState = localStorage.getItem('kronik-sidebar-collapsed');
+    if (savedSidebarState === 'true') {
+        sidebar.classList.add('collapsed');
+        mainContainer.classList.add('expanded');
+    }
+    
     sidebarToggle.addEventListener('click', function() {
         sidebar.classList.toggle('collapsed');
         mainContainer.classList.toggle('expanded');
+        
+        // Сохраняем состояние сайдбара
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        localStorage.setItem('kronik-sidebar-collapsed', isCollapsed.toString());
+    });
+}
+
+function setupLanguageToggle() {
+    const languageToggle = document.querySelector('.theme-toggle'); // Используем существующую кнопку
+    const body = document.body;
+    const toggleText = document.querySelector('.toggle-text');
+    
+    if (!languageToggle || !toggleText) return;
+    
+    // Языки и их отображение
+    const languages = {
+        'ru': { name: 'Русский', icon: '🇷🇺', next: 'en' },
+        'en': { name: 'English', icon: '🇬🇧', next: 'uz' },
+        'uz': { name: 'O\'zbek', icon: '🇺🇿', next: 'ru' }
+    };
+    
+    // Загружаем сохраненный язык при загрузке страницы
+    let currentLang = localStorage.getItem('kronik-language') || 'ru';
+    
+    // Устанавливаем начальный язык
+    body.setAttribute('data-language', currentLang);
+    updateLanguageUI(currentLang);
+    
+    // Обновляем UI кнопки для отображения языка
+    function updateLanguageUI(lang) {
+        const langData = languages[lang];
+        languageToggle.innerHTML = `
+            <span class="lang-icon">${langData.icon}</span>
+            <span class="lang-text">${langData.name}</span>
+        `;
+        
+        // Применяем переводы
+        applyTranslations(lang);
+    }
+    
+    // Обработчик клика для переключения языка
+    languageToggle.addEventListener('click', function() {
+        currentLang = languages[currentLang].next;
+        body.setAttribute('data-language', currentLang);
+        updateLanguageUI(currentLang);
+        
+        // Сохраняем выбранный язык в localStorage
+        localStorage.setItem('kronik-language', currentLang);
     });
 }
 
@@ -639,6 +694,243 @@ function setupCategories() {
     });
 }
 
+// Функция применения переводов
+function applyTranslations(lang) {
+    const translations = {
+        'ru': {
+            'search-placeholder': 'Поиск...',
+            'main-page': 'Главная',
+            'courses': 'Курсы',
+            'library': 'Библиотека',
+            'subscriptions': 'Подписки',
+            'studio': 'Студия',
+            'liked': 'Понравившиеся',
+            'history': 'История просмотров',
+            'playlists': 'Мои плейлисты',
+            'progress': 'Прогресс обучения',
+            'notes': 'Заметки',
+            'schedule': 'Расписание',
+            'search': 'Поиск',
+            'profile': 'Мой профиль',
+            'settings': 'Настройки',
+            'become-author': 'Стать автором',
+            'my-courses': 'Мои курсы',
+            'help': 'Помощь',
+            'logout': 'Выход',
+            'login': 'Войти',
+            'register': 'Регистрация',
+            'notifications': 'Уведомления',
+            'no-notifications': 'У вас пока нет уведомлений',
+            'auth-required': 'Авторизуйтесь, чтобы видеть уведомления',
+            'no-subscriptions': 'У вас пока нет подписок',
+            'you-section': 'ВЫ',
+            'tools-section': 'ИНСТРУМЕНТЫ'
+        },
+        'en': {
+            'search-placeholder': 'Search...',
+            'main-page': 'Home',
+            'courses': 'Courses',
+            'library': 'Library',
+            'subscriptions': 'Subscriptions',
+            'studio': 'Studio',
+            'liked': 'Liked videos',
+            'history': 'Watch history',
+            'playlists': 'My playlists',
+            'progress': 'Learning progress',
+            'notes': 'Notes',
+            'schedule': 'Schedule',
+            'search': 'Search',
+            'profile': 'My profile',
+            'settings': 'Settings',
+            'become-author': 'Become an author',
+            'my-courses': 'My courses',
+            'help': 'Help',
+            'logout': 'Sign out',
+            'login': 'Sign in',
+            'register': 'Sign up',
+            'notifications': 'Notifications',
+            'no-notifications': 'You have no notifications yet',
+            'auth-required': 'Sign in to see notifications',
+            'no-subscriptions': 'You have no subscriptions yet',
+            'you-section': 'YOU',
+            'tools-section': 'TOOLS'
+        },
+        'uz': {
+            'search-placeholder': 'Qidirish...',
+            'main-page': 'Bosh sahifa',
+            'courses': 'Kurslar',
+            'library': 'Kutubxona',
+            'subscriptions': 'Obunalar',
+            'studio': 'Studiya',
+            'liked': 'Yoqtirilgan videolar',
+            'history': 'Ko\'rish tarixi',
+            'playlists': 'Mening pleylistlarim',
+            'progress': 'O\'rganish jarayoni',
+            'notes': 'Eslatmalar',
+            'schedule': 'Jadval',
+            'search': 'Qidiruv',
+            'profile': 'Mening profilim',
+            'settings': 'Sozlamalar',
+            'become-author': 'Muallif bo\'lish',
+            'my-courses': 'Mening kurslarim',
+            'help': 'Yordam',
+            'logout': 'Chiqish',
+            'login': 'Kirish',
+            'register': 'Ro\'yxatdan o\'tish',
+            'notifications': 'Bildirishnomalar',
+            'no-notifications': 'Sizda hali bildirishnomalar yo\'q',
+            'auth-required': 'Bildirishnomalarni ko\'rish uchun tizimga kiring',
+            'no-subscriptions': 'Sizda hali obunalar yo\'q',
+            'you-section': 'SIZ',
+            'tools-section': 'VOSITALAR'
+        }
+    };
+    
+    // Применяем переводы к элементам с data-translate атрибутом
+    document.querySelectorAll('[data-translate]').forEach(element => {
+        const key = element.getAttribute('data-translate');
+        if (translations[lang] && translations[lang][key]) {
+            element.textContent = translations[lang][key];
+        }
+    });
+    
+    // Обновляем placeholder у поиска
+    const searchInput = document.getElementById('search-input');
+    if (searchInput && translations[lang]['search-placeholder']) {
+        searchInput.placeholder = translations[lang]['search-placeholder'];
+    }
+    
+    // Обновляем текст в меню
+    const menuTranslations = {
+        'Главная': translations[lang]['main-page'],
+        'Home': translations[lang]['main-page'],
+        'Bosh sahifa': translations[lang]['main-page'],
+        'Курсы': translations[lang]['courses'],
+        'Courses': translations[lang]['courses'],
+        'Kurslar': translations[lang]['courses'],
+        'Библиотека': translations[lang]['library'],
+        'Library': translations[lang]['library'],
+        'Kutubxona': translations[lang]['library'],
+        'Подписки': translations[lang]['subscriptions'],
+        'Subscriptions': translations[lang]['subscriptions'],
+        'Obunalar': translations[lang]['subscriptions'],
+        'Студия': translations[lang]['studio'],
+        'Studio': translations[lang]['studio'],
+        'Studiya': translations[lang]['studio'],
+        'Понравившиеся': translations[lang]['liked'],
+        'Liked videos': translations[lang]['liked'],
+        'Yoqtirilgan videolar': translations[lang]['liked'],
+        'История просмотров': translations[lang]['history'],
+        'Watch history': translations[lang]['history'],
+        'Ko\'rish tarixi': translations[lang]['history'],
+        'Мои плейлисты': translations[lang]['playlists'],
+        'My playlists': translations[lang]['playlists'],
+        'Mening pleylistlarim': translations[lang]['playlists'],
+        'Прогресс обучения': translations[lang]['progress'],
+        'Learning progress': translations[lang]['progress'],
+        'O\'rganish jarayoni': translations[lang]['progress'],
+        'Заметки': translations[lang]['notes'],
+        'Notes': translations[lang]['notes'],
+        'Eslatmalar': translations[lang]['notes'],
+        'Расписание': translations[lang]['schedule'],
+        'Schedule': translations[lang]['schedule'],
+        'Jadval': translations[lang]['schedule'],
+        'Поиск': translations[lang]['search'],
+        'Search': translations[lang]['search'],
+        'Qidiruv': translations[lang]['search'],
+        'ВЫ': translations[lang]['you-section'],
+        'YOU': translations[lang]['you-section'],
+        'SIZ': translations[lang]['you-section'],
+        'ИНСТРУМЕНТЫ': translations[lang]['tools-section'],
+        'TOOLS': translations[lang]['tools-section'],
+        'VOSITALAR': translations[lang]['tools-section']
+    };
+    
+    // Обновляем текст в sidebar
+    document.querySelectorAll('.menu-text, .sidebar-title').forEach(element => {
+        const currentText = element.textContent.trim();
+        if (menuTranslations[currentText]) {
+            element.textContent = menuTranslations[currentText];
+        }
+    });
+    
+    // Обновляем dropdown menu
+    const dropdownTranslations = {
+        'Мой профиль': translations[lang]['profile'],
+        'My profile': translations[lang]['profile'],
+        'Mening profilim': translations[lang]['profile'],
+        'Настройки': translations[lang]['settings'],
+        'Settings': translations[lang]['settings'],
+        'Sozlamalar': translations[lang]['settings'],
+        'Стать автором': translations[lang]['become-author'],
+        'Become an author': translations[lang]['become-author'],
+        'Muallif bo\'lish': translations[lang]['become-author'],
+        'Мои курсы': translations[lang]['my-courses'],
+        'My courses': translations[lang]['my-courses'],
+        'Mening kurslarim': translations[lang]['my-courses'],
+        'Помощь': translations[lang]['help'],
+        'Help': translations[lang]['help'],
+        'Yordam': translations[lang]['help'],
+        'Выход': translations[lang]['logout'],
+        'Sign out': translations[lang]['logout'],
+        'Chiqish': translations[lang]['logout']
+    };
+    
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+        const textElement = item.querySelector('div:last-child');
+        if (textElement) {
+            const currentText = textElement.textContent.trim();
+            if (dropdownTranslations[currentText]) {
+                textElement.textContent = dropdownTranslations[currentText];
+            }
+        }
+    });
+    
+    // Обновляем кнопки входа/регистрации
+    const loginButton = document.querySelector('.login-button');
+    const registerButton = document.querySelector('.register-button');
+    
+    if (loginButton) {
+        loginButton.textContent = translations[lang]['login'];
+    }
+    if (registerButton) {
+        registerButton.textContent = translations[lang]['register'];
+    }
+    
+    // Обновляем уведомления
+    const notificationHeader = document.querySelector('.notification-header h3');
+    if (notificationHeader) {
+        notificationHeader.textContent = translations[lang]['notifications'];
+    }
+    
+    const emptyNotifications = document.querySelector('.empty-notifications p');
+    if (emptyNotifications) {
+        emptyNotifications.textContent = translations[lang]['no-notifications'];
+    }
+    
+    const authRequired = document.querySelector('.notification-login-required p');
+    if (authRequired) {
+        authRequired.textContent = translations[lang]['auth-required'];
+    }
+    
+    // Обновляем кнопки в уведомлениях
+    const notifLoginBtn = document.querySelector('.notification-login-btn');
+    const notifRegisterBtn = document.querySelector('.notification-register-btn');
+    
+    if (notifLoginBtn) {
+        notifLoginBtn.textContent = translations[lang]['login'];
+    }
+    if (notifRegisterBtn) {
+        notifRegisterBtn.textContent = translations[lang]['register'];
+    }
+    
+    // Обновляем подписки
+    const noSubscriptions = document.querySelector('.no-subscriptions');
+    if (noSubscriptions) {
+        noSubscriptions.textContent = translations[lang]['no-subscriptions'];
+    }
+}
+
 document.querySelectorAll('.show-replies-btn').forEach(button => {
     button.addEventListener('click', function() {
         const isShown = this.getAttribute('data-shown') === 'true';
@@ -665,7 +957,6 @@ document.querySelectorAll('.show-replies-btn').forEach(button => {
 document.addEventListener('DOMContentLoaded', function() {
     videosContainer = document.getElementById('videos-container');
     
-    
     if (videosContainer && videosContainer.children.length === 0) {
         console.log('Initial video load');
         loadVideosFromGCS();
@@ -675,7 +966,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setupSearch();
     setupSidebar();
-    setupThemeToggle();
+    setupLanguageToggle(); // Заменяем setupThemeToggle на setupLanguageToggle
     setupUserMenu();
     setupMobileMenu();
     setupCategories();

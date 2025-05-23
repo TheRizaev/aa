@@ -58,7 +58,7 @@ header {
 /* Переключатель темы */
 .theme-toggle {
     cursor: pointer;
-    padding: 0.4rem 0.6rem;
+    padding: 0.4rem 0.8rem;
     border-radius: 30px;
     background-color: var(--accent-color);
     color: var(--text-light);
@@ -67,35 +67,73 @@ header {
     transition: all 0.3s;
     display: flex;
     align-items: center;
+    gap: 8px;
     box-shadow: 0 3px 8px rgba(37, 39, 159, 0.3);
+    min-width: 140px;
+    justify-content: center;
 }
 
 .theme-toggle:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(159, 37, 88, 0.4);
+    box-shadow: 0 5px 15px rgba(41, 37, 159, 0.4);
+    background-color: #1f2f4a;
 }
 
-.theme-icon {
-    font-size: 1.2rem;
-    transition: transform 0.5s;
+.lang-icon {
+    font-size: 1rem;
+    display: inline-flex;
+    margin-bottom: 6px;
+    align-items: center;
 }
 
-.theme-icon.sun {
-    color: #FFD700;
-    display: none;
+.lang-text {
+    font-size: 1rem;
+    white-space: nowrap;
 }
 
-.theme-icon.moon {
-    color: #E0E0E0;
-    display: inline-block;
+@keyframes langChange {
+    0% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.1) rotate(180deg); }
+    100% { transform: scale(1) rotate(360deg); }
 }
 
-.light-theme .theme-icon.sun {
-    display: inline-block;
+.theme-toggle:active .lang-icon {
+    animation: langChange 0.5s ease;
 }
 
-.light-theme .theme-icon.moon {
-    display: none;
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .theme-toggle {
+        min-width: auto;
+        padding: 0.4rem 0.6rem;
+    }
+    
+    .lang-text {
+        display: none;
+    }
+    
+    .lang-icon {
+        font-size: 1.5rem;
+    }
+}
+
+/* Переходы при смене языка */
+body[data-language] * {
+    transition: none;
+}
+
+body[data-language].language-transitioning * {
+    transition: opacity 0.2s ease;
+}
+
+/* Tooltip для языкового переключателя */
+.theme-toggle {
+    position: relative;
+}
+
+
+.theme-toggle:hover::after {
+    opacity: 1;
 }
 
 /* Кнопка входа/регистрации в стиле кролика */

@@ -230,7 +230,7 @@ function showPopularSearchTerms(terms, searchDropdown) {
         const termItem = document.createElement('div');
         termItem.className = 'search-term';
         termItem.innerHTML = `
-            <div class="search-term-icon">🔍</div>
+            <div class="search-term-icon"><img src="/static/icons/loop.svg" alt="Search" width="32" height="32"></div>
             <div class="search-term-text">${term}</div>
         `;
         
@@ -266,7 +266,7 @@ function showSearchResults(results, searchDropdown, query) {
     const searchItem = document.createElement('div');
     searchItem.className = 'search-term';
     searchItem.innerHTML = `
-        <div class="search-term-icon">🔍</div>
+        <div class="search-term-icon"><img src="/static/icons/loop.svg" alt="Search" width="32" height="32"></div>
         <div class="search-term-text">Искать <strong>${query}</strong></div>
     `;
     
