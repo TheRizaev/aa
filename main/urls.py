@@ -21,6 +21,10 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),  # User profile
     path('profile/settings/', views.profile_settings_view, name='profile_settings'),  # Profile settings
 
+    # Новые страницы для лайков и истории
+    path('liked-videos/', views.liked_videos, name='liked_videos'),  # Понравившиеся видео
+    path('watch-history/', views.watch_history, name='watch_history'),  # История просмотров
+
     path('studio/', gcs_views.studio_view, name='studio'),  # Uses the new GCS-integrated view
 
     path('become-author/', views.author_application, name='become_author'),  # Author application

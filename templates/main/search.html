@@ -85,100 +85,6 @@
         <button id="load-more-btn" class="load-more-button">Загрузить ещё</button>
     </div>
     {% endif %}
-    
-    <div class="debug-toggle-container">
-        <button id="toggle-debug" class="debug-toggle">Показать отладочную информацию</button>
-    </div>
-    
-    <div id="debug-info" class="debug-info" style="display:none;">
-        <h3>Отладочная информация</h3>
-        
-        <div class="debug-section">
-            <h4>Параметры запроса</h4>
-            <div class="debug-content">
-                <p><strong>Запрос:</strong> {{ debug.query }}</p>
-                <p><strong>Смещение:</strong> {{ debug.offset }}</p>
-                <p><strong>Лимит:</strong> {{ debug.limit }}</p>
-                <p><strong>Всего найдено видео:</strong> {{ debug.total_videos_found|default:"0" }}</p>
-                <p><strong>Найдено результатов:</strong> {{ debug.total_results|default:"0" }}</p>
-                <p><strong>Возвращено результатов:</strong> {{ debug.results_returned|default:"0" }}</p>
-            </div>
-        </div>
-        
-        <div class="debug-section">
-            <h4>Шаги поиска</h4>
-            <div class="debug-content">
-                <ol>
-                    {% for step in debug.scan_steps %}
-                    <li>{{ step }}</li>
-                    {% empty %}
-                    <li>Нет информации о шагах поиска</li>
-                    {% endfor %}
-                </ol>
-            </div>
-        </div>
-        
-        {% if debug.core_videos_count is not None %}
-        <div class="debug-section">
-            <h4>Видео с "CORE" в названии ({{ debug.core_videos_count }})</h4>
-            <div class="debug-content">
-                <ul>
-                    {% for video in debug.core_videos %}
-                    <li>{{ video.title }} ({{ video.user_id }}/{{ video.video_id }})</li>
-                    {% empty %}
-                    <li>Не найдено видео с "CORE" в названии</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-        {% endif %}
-        
-        <div class="debug-section">
-            <h4>Пользователи ({{ debug.users|length }} из {{ debug.users|length }})</h4>
-            <div class="debug-content">
-                <ul>
-                    {% for user in debug.users %}
-                    <li>{{ user }}</li>
-                    {% empty %}
-                    <li>Нет информации о пользователях</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-        
-        <div class="debug-section">
-            <h4>Примеры найденных видео ({{ debug.all_videos_sample|length }} из {{ debug.total_videos_found|default:"0" }})</h4>
-            <div class="debug-content">
-                <ul>
-                    {% for video in debug.all_videos_sample %}
-                    <li>{{ video.title }} ({{ video.user_id }}/{{ video.video_id }})</li>
-                    {% empty %}
-                    <li>Нет информации о найденных видео</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-        
-        <div class="debug-section">
-            <h4>Ошибки</h4>
-            <div class="debug-content">
-                <ul>
-                    {% for error in debug.errors %}
-                    <li class="error">{{ error }}</li>
-                    {% empty %}
-                    <li>Нет ошибок</li>
-                    {% endfor %}
-                </ul>
-                
-                {% if debug.traceback %}
-                <div class="debug-traceback">
-                    <h5>Traceback</h5>
-                    <pre>{{ debug.traceback }}</pre>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
 </div>
 
 <style>
@@ -267,9 +173,9 @@
 
 .suggestion-tag {
     padding: 8px 15px;
-    background-color: rgba(37, 39, 159, 0.1);
+    background-color: rgba(37, 39, 159, 0.3);
     border-radius: 20px;
-    color: var(--primary-color);
+    color: var(--text-light);
     text-decoration: none;
     transition: all 0.3s;
 }

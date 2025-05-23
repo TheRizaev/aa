@@ -10,7 +10,7 @@ class MainConfig(AppConfig):
         import main.s3_utils  # Your existing imports
         
         try:
-            from main.voice_assistant import on_startup
+            from main.ai_views import on_startup
             on_startup()
         except Exception as e:
             import logging

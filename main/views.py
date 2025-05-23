@@ -48,20 +48,31 @@ def index(request):
         if response.status_code == 200:
             data = response.json()
             if data.get('success') and data.get('videos'):
-                selected_videos = data.get('videos')
+                selected_videos = data.get('videos', [])
                 
-                # Перетасовываем видео для случайного порядка
-                random.shuffle(selected_videos)
-                
-                logger.info(f"Successfully loaded and shuffled {len(selected_videos)} video metadata from API")
-                return render(request, 'main/index.html', {
-                    'categories': categories,
-                    'gcs_videos': selected_videos
-                })
+                # Проверяем, что selected_videos не None
+                if selected_videos is not None:
+                    # Перетасовываем видео для случайного порядка
+                    random.shuffle(selected_videos)
+                    
+                    logger.info(f"Successfully loaded and shuffled {len(selected_videos)} video metadata from API")
+                    return render(request, 'main/index.html', {
+                        'categories': categories,
+                        'gcs_videos': selected_videos
+                    })
+                else:
+                    logger.warning("API returned None for videos")
+                    return render(request, 'main/index.html', {'categories': categories, 'gcs_videos': []})
+            else:
+                logger.warning("API response missing 'success' or 'videos' field")
+                return render(request, 'main/index.html', {'categories': categories, 'gcs_videos': []})
+        else:
+            logger.warning(f"API request failed with status code: {response.status_code}")
+            return render(request, 'main/index.html', {'categories': categories, 'gcs_videos': []})
         
-        logger.warning("Failed to load videos from API, falling back to empty state")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Network error in index view: {e}")
         return render(request, 'main/index.html', {'categories': categories, 'gcs_videos': []})
-        
     except Exception as e:
         logger.error(f"Error in optimized index view: {e}")
         return render(request, 'main/index.html', {'categories': categories, 'gcs_videos': []})

@@ -19,6 +19,21 @@
     {% if request.path == '/studio/' %}
     <link rel="stylesheet" href="{% static 'css/studio.css' %}">
     {% endif %}
+    
+    <!-- CSRF Token for AJAX requests -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    
+    <!-- JavaScript variables for user authentication and profile -->
+    <script>
+        // Глобальные переменные для JavaScript
+        window.userAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+        {% if user.is_authenticated %}
+            window.userInitial = "{{ user.profile.display_name|first|default:user.username|first }}";
+            {% if user_avatar_url %}
+                window.userAvatarUrl = "{{ user_avatar_url }}";
+            {% endif %}
+        {% endif %}
+    </script>
 </head>
 <body class="dark-theme">
     <div class="theme-transition dark"></div>
@@ -27,15 +42,13 @@
         <button id="sidebar-toggle" class="sidebar-toggle" style="color: #ffffff">☰</button>
         <div class="logo">
             <img src="{% static 'Kronik-Light1.png' %}" alt="KRONIK" class="logo-img" width="50" height="50">
-            <span class="logo-text">KRONIK</span> 
+            <span class="logo-text">KRONIK</span></span> 
         </div>
         <div class="search-container">
             <div class="search-bar">
-                <input type="text" id="search-input" placeholder="Поиск...">
-                <button class="search-button"><img src="/static/icons/loop.svg" alt="Light mode" width="32" height="32"></button>
-                <div class="search-dropdown" id="search-dropdown">
-                    <!-- Результаты поиска будут добавляться сюда -->
-                </div>
+                <input type="text" id="search-input" placeholder="Поиск..." data-translate-placeholder="search-placeholder" autocomplete="off">
+                <button class="search-button"><img src="/static/icons/loop.svg" alt="Search" width="32" height="32"></button>
+                <div class="search-dropdown" id="search-dropdown"></div>
             </div>
         </div>
         <div class="actions">
@@ -46,9 +59,9 @@
                 </button>
                 <div class="notification-dropdown">
                     <div class="notification-header">
-                        <h3>Уведомления</h3>
+                        <h3 data-translate="notifications">Уведомления</h3>
                     </div>
-                    <div class="notification-content">
+                        <div class="notification-content">
                         {% if user.is_authenticated %}
                             <div class="empty-notifications">
                                 <div class="empty-icon"><img src="/static/icons/notification.svg" alt="Уведомления" width="80" height="80"></div>
@@ -69,8 +82,6 @@
             </div>
 
             <button class="theme-toggle">
-                <span class="theme-icon sun"><img src="/static/icons/moon.svg" alt="Light mode" width="24" height="24"></span>
-                <span class="theme-icon moon"><img src="/static/icons/sun.svg" alt="Dark mode" width="24" height="24"></span>
                 <span class="toggle-text"></span>
             </button>
             
@@ -146,8 +157,8 @@
                     </div>
                 {% else %}
                     <div class="auth-buttons">
-                        <a href="{% url 'login' %}" class="login-button">Войти</a>
-                        <a href="{% url 'register' %}" class="register-button">Регистрация</a>
+                        <a href="{% url 'login' %}" class="login-button" data-translate="login">Войти</a>
+                        <a href="{% url 'register' %}" class="register-button" data-translate="register">Регистрация</a>
                     </div>
                 {% endif %}
             </div>
@@ -159,16 +170,16 @@
     <div class="main-container">
         <div class="sidebar" id="sidebar">
             <div class="menu-item {% if request.path == '/' %}active{% endif %}" onclick="window.location.href='{% url 'index' %}'">
-                <div class="menu-icon"><img src="/static/icons/house.svg" alt="Dark mode" width="32" height="32"></div>
-                <div class="menu-text">Главная</div>
+                <div class="menu-icon"><img src="/static/icons/house.svg" alt="Home" width="32" height="32"></div>
+                <div class="menu-text" data-translate="main-page">Главная</div>
             </div>
             <div class="menu-item">
-                <div class="menu-icon"><img src="/static/icons/courses.svg" alt="Dark mode" width="32" height="32"></div>
-                <div class="menu-text">Курсы</div>
+                <div class="menu-icon"><img src="/static/icons/courses.svg" alt="Courses" width="32" height="32"></div>
+                <div class="menu-text" data-translate="courses">Курсы</div>
             </div>
             <div class="menu-item">
-                <div class="menu-icon"><img src="/static/icons/books.svg" alt="Dark mode" width="32" height="32"></div>
-                <div class="menu-text">Библиотека</div>
+                <div class="menu-icon"><img src="/static/icons/books.svg" alt="Library" width="32" height="32"></div>
+                <div class="menu-text" data-translate="library">Библиотека</div>
             </div>
             <div class="menu-item subscriptions-toggle" id="subscriptions-toggle">
                 <div class="menu-icon"><img src="/static/icons/tip.svg" alt="Подписки" width="24" height="24"></div>
@@ -189,11 +200,11 @@
             
             <div class="sidebar-section">
                 <div class="sidebar-title">ВЫ</div>
-                <div class="menu-item">
+                <div class="menu-item {% if request.path == '/liked-videos/' %}active{% endif %}" onclick="window.location.href='{% url 'liked_videos' %}'">
                     <div class="menu-icon"><img src="/static/icons/like.svg" alt="Понравившиеся" width="24" height="24"></div>
                     <div class="menu-text">Понравившиеся</div>
                 </div>
-                <div class="menu-item">
+                <div class="menu-item {% if request.path == '/watch-history/' %}active{% endif %}" onclick="window.location.href='{% url 'watch_history' %}'">
                     <div class="menu-icon"><img src="/static/icons/timer.svg" alt="История" width="24" height="24"></div>
                     <div class="menu-text">История просмотров</div>
                 </div>
@@ -229,14 +240,8 @@
         </div>
     </div>
     
-    <!-- AI Chat Button -->
-    <div class="kronik-ai-button" id="kronik-ai-button">
-        <div class="kronik-ai-icon">
-            <img src="{% static 'Kronik-Light1.png' %}" alt="Kronik AI" width="30" height="30">
-        </div>
-        <div class="kronik-ai-pulse"></div>
-    </div>
-    
+    <!-- AI Chat Button - только для авторизованных пользователей -->
+    {% if user.is_authenticated %}
     <div class="ai-chat-button" id="ai-chat-button">
         <div class="ai-chat-icon">
             <span class="kronik-logo">K</span>
@@ -250,9 +255,7 @@
             <div class="ai-chat-header">
                 <div class="ai-chat-title">
                     <div class="ai-avatar">
-                        <span class="kronik-logo">
-
-                        </span>
+                        <span class="kronik-logo">K</span>
                     </div>
                     <div class="ai-title-text">
                         <h3>Кроник ИИ</h3>
@@ -260,6 +263,12 @@
                     </div>
                 </div>
                 <div class="ai-chat-controls">
+                    <button class="clear-history-btn" id="clear-history-btn" title="Очистить всю историю чата">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Очистить историю</span>
+                    </button>
                     <button class="ai-chat-expand" id="ai-chat-expand" title="Развернуть на весь экран">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -304,6 +313,15 @@
             </div>
         </div>
     </div>
+    {% else %}
+    <!-- Модальное окно для неавторизованных пользователей -->
+    <div class="ai-chat-button" id="ai-chat-button">
+        <div class="ai-chat-icon">
+            <span class="kronik-logo">K</span>
+        </div>
+        <div class="ai-chat-pulse"></div>
+    </div>
+    {% endif %}
 
     <script src="{% static 'js/main.js' %}"></script>
     <script src="{% static 'js/search.js' %}"></script>
@@ -511,7 +529,7 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: rgba(159, 37, 88, 0.2);
+    background: rgba(37, 94, 159, 0.2);
 }
 
 .history-separator span {
@@ -751,7 +769,7 @@
 .ai-avatar-large {
     width: 80px;
     height: 80px;
-    background: linear-gradient(135deg, #9f2558, #c1316d);
+    background: linear-gradient(135deg,rgb(80, 130, 196),rgb(43, 84, 154));
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -812,7 +830,7 @@
 
 .login-modal-btn:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(159, 37, 88, 0.4);
+    box-shadow: 0 8px 25px rgba(41, 37, 159, 0.4);
 }
 
 .login-modal-btn.register-btn:hover {
@@ -879,7 +897,6 @@
     padding: 0 20px;
     background: var(--light-bg);
     border-radius: 15px;
-    border: 1px solid rgba(159, 37, 88, 0.1);
     color: var(--primary-color);
     font-weight: 600;
 }
@@ -1174,4 +1191,32 @@
             }
         }
     });
+</script>
+<script>
+// Устанавливаем начальные значения для пользовательских данных
+window.userAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+{% if user.is_authenticated %}
+window.userInitial = "{{ user.profile.display_name|first|default:user.username|first }}";
+{% if user_avatar_url %}
+window.userAvatarUrl = "{{ user_avatar_url }}";
+{% endif %}
+{% endif %}
+
+// Применяем сохраненные настройки при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    // Восстанавливаем состояние сайдбара
+    const savedSidebarState = localStorage.getItem('kronik-sidebar-collapsed');
+    if (savedSidebarState === 'true') {
+        const sidebar = document.getElementById('sidebar');
+        const mainContainer = document.querySelector('.main-container');
+        if (sidebar && mainContainer) {
+            sidebar.classList.add('collapsed');
+            mainContainer.classList.add('expanded');
+        }
+    }
+    
+    // Восстанавливаем язык
+    const savedLanguage = localStorage.getItem('kronik-language') || 'ru';
+    document.body.setAttribute('data-language', savedLanguage);
+});
 </script>

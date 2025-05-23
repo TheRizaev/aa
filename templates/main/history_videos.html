@@ -2,177 +2,388 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}{{ page_title }} - KRONIK{% endblock %}
+{% block title %}История просмотров - KRONIK{% endblock %}
 
 {% block content %}
-<div class="videos-page-container">
-    <h1 class="page-title">{{ page_title }}</h1>
+<div class="watch-history-container">
+    <!-- Красивый заголовок с временной лентой -->
+    <div class="page-header-history">
+        <div class="header-content-history">
+            <div class="header-icon-history">
+                <div class="clock-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                        <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="header-text-history">
+                <h1 class="page-title-history">История просмотров</h1>
+                <p class="page-subtitle-history">Ваш образовательный путь и прогресс в обучении</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="clear-history-btn" onclick="clearHistory()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Очистить историю
+            </button>
+        </div>
+    </div>
     
     {% if videos %}
-        <div class="search-results-list">
+        <!-- Временная шкала с видео -->
+        <div class="timeline-container">
+            <div class="timeline-line"></div>
+            
             {% for video in videos %}
-            <div class="search-result-item" data-type="videos" onclick="window.location.href='/video/{{ video.user_id }}__{{ video.video_id }}/'">
-                <div class="result-thumbnail">
-                    {% if video.thumbnail_url %}
-                        <img src="{{ video.thumbnail_url }}" alt="{{ video.title }}" loading="lazy" onerror="this.src='{% static 'placeholder.jpg' %}'">
-                    {% else %}
-                        <img src="{% static 'placeholder.jpg' %}" alt="{{ video.title }}" loading="lazy">
-                    {% endif %}
-                    <div class="result-duration">{{ video.duration|default:"00:00" }}</div>
+            <div class="timeline-item" data-date="{{ video.viewed_at|date:'Y-m-d' }}">
+                <div class="timeline-marker">
+                    <div class="marker-dot"></div>
+                    <div class="marker-time">{{ video.viewed_at|date:'H:i' }}</div>
                 </div>
-                <div class="result-details">
-                    <h3 class="result-title">{{ video.title }}</h3>
-                    <div class="result-meta">{{ video.views_formatted }} • {{ video.upload_date_formatted|default:"Недавно" }}</div>
-                    <div class="result-channel">
-                        <div class="avatar avatar-medium">
-                            {% if video.avatar_url %}
-                                <img src="{{ video.avatar_url }}" alt="{{ video.display_name|default:video.channel }}" loading="lazy">
+                
+                <div class="timeline-content" onclick="window.location.href='/video/{{ video.user_id }}__{{ video.video_id }}/'">
+                    <div class="video-card-timeline">
+                        <div class="thumbnail-timeline">
+                            {% if video.thumbnail_url %}
+                                <img src="{{ video.thumbnail_url }}" alt="{{ video.title }}" loading="lazy" onerror="this.src='{% static 'placeholder.jpg' %}'">
                             {% else %}
-                                <span class="avatar-text">{{ video.display_name|first|default:video.channel|first }}</span>
+                                <img src="{% static 'placeholder.jpg' %}" alt="{{ video.title }}" loading="lazy">
+                            {% endif %}
+                            <div class="duration-timeline">{{ video.duration|default:"00:00" }}</div>
+                            <div class="watched-indicator">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+                                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="video-info-timeline">
+                            <h3 class="video-title-timeline">{{ video.title }}</h3>
+                            
+                            <div class="channel-info-timeline">
+                                <a href="{% url 'channel' username=video.user_id %}" class="channel-link-timeline">
+                                    <div class="channel-avatar-timeline">
+                                        {% if video.avatar_url %}
+                                            <img src="{{ video.avatar_url }}" alt="{{ video.display_name|default:video.channel }}" loading="lazy">
+                                        {% else %}
+                                            <span class="avatar-text">{{ video.display_name|first|default:video.channel|first }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <span class="channel-name-timeline">{{ video.display_name|default:video.channel }}</span>
+                                </a>
+                            </div>
+                            
+                            <div class="video-meta-timeline">
+                                <span class="views-timeline">{{ video.views_formatted }}</span>
+                                <span class="separator">•</span>
+                                <span class="upload-date">{{ video.upload_date_formatted|default:"Недавно" }}</span>
+                            </div>
+                            
+                            <div class="watched-info">
+                                <span class="watched-time">Просмотрено {{ video.viewed_at_formatted }}</span>
+                            </div>
+                            
+                            {% if video.description %}
+                            <p class="video-description-timeline">{{ video.description|truncatechars:150 }}</p>
                             {% endif %}
                         </div>
-                        <div class="channel-name">{{ video.display_name|default:video.channel }}</div>
+                        
+                        <div class="timeline-actions">
+                            <button class="action-btn" onclick="event.stopPropagation(); removeFromHistory('{{ video.user_id }}__{{ video.video_id }}')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                    <div class="result-description">
-                        {{ video.description|default:""|truncatechars:150 }}
-                    </div>
-                    {% if video.viewed_at_formatted %}
-                    <div class="viewed-at">Просмотрено: {{ video.viewed_at_formatted }}</div>
-                    {% endif %}
                 </div>
+                
+                <!-- Дата-разделитель -->
+                {% if forloop.first or video.viewed_at|date:'Y-m-d' != last_video_date|stringformat:"Y-m-d" %}
+                <div class="date-separator">
+                    <span class="date-text">{{ video.viewed_at|date:'d F Y' }}</span>
+                </div>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
+        
+        <!-- Статистика просмотров -->
+        <div class="watch-stats">
+            <div class="stats-card">
+                <div class="stat-item">
+                    <span class="stat-number">{{ videos|length }}</span>
+                    <span class="stat-label">видео просмотрено</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">0</span>
+                    <span class="stat-label">часов обучения</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">0</span>
+                    <span class="stat-label">дней подряд</span>
+                </div>
+            </div>
+        </div>
+        
     {% else %}
-        <div class="empty-state">
-            <img src="{% static 'icons/timer.svg' %}" alt="No history" class="empty-icon">
+        <!-- Пустое состояние -->
+        <div class="empty-state-history">
+            <div class="empty-illustration-history">
+                <div class="empty-clock">
+                    <svg width="120" height="120" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1"/>
+                        <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="floating-dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
             <h3>История просмотров пуста</h3>
-            <p>Видео, которые вы посмотрите, будут отображаться здесь</p>
-            <a href="{% url 'index' %}" class="action-button">Перейти на главную</a>
+            <p>Начните изучать образовательные материалы, и здесь появится история ваших просмотров</p>
+            <a href="{% url 'index' %}" class="start-learning-btn">
+                <span>Начать обучение</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 4l8 8-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
         </div>
     {% endif %}
 </div>
 
 <style>
-.videos-page-container {
+.watch-history-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
+    min-height: calc(100vh - 200px);
 }
 
-.page-title {
-    font-size: 28px;
-    font-weight: bold;
-    margin-bottom: 20px;
-    color: var(--primary-color);
+/* Заголовок */
+.page-header-history {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: linear-gradient(135deg, rgba(37, 39, 159, 0.1) 0%, rgba(159, 37, 88, 0.1) 100%);
+    border-radius: 20px;
+    border: 1px solid rgba(37, 39, 159, 0.2);
+    position: relative;
+    overflow: hidden;
 }
 
-/* Search results list styles */
-.search-results-list {
+.page-header-history::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-color), var(--primary-color), var(--accent-color));
+    animation: time-flow 4s ease-in-out infinite;
+}
+
+.header-content-history {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-icon-history {
+    position: relative;
+}
+
+.clock-icon {
+    color: var(--accent-color);
+    animation: tick 2s ease-in-out infinite;
+}
+
+.page-title-history {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--accent-color);
+    margin: 0 0 8px 0;
+    text-shadow: 0 2px 4px rgba(37, 39, 159, 0.2);
+}
+
+.page-subtitle-history {
+    color: var(--gray-color);
+    font-size: 1.1rem;
+    margin: 0;
+    opacity: 0.8;
+}
+
+.clear-history-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: transparent;
+    border: 2px solid #ff4757;
+    color: #ff4757;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.clear-history-btn:hover {
+    background: #ff4757;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 71, 87, 0.3);
+}
+
+/* Временная шкала */
+.timeline-container {
+    position: relative;
+    padding-left: 60px;
+}
+
+.timeline-line {
+    position: absolute;
+    left: 30px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, var(--accent-color), var(--primary-color));
+    border-radius: 2px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 40px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -45px;
+    top: 20px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    margin-top: 20px;
+    align-items: center;
 }
 
-.search-result-item {
+.marker-dot {
+    width: 16px;
+    height: 16px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(37, 39, 159, 0.3);
+    animation: pulse-dot 2s infinite;
+}
+
+.marker-time {
+    font-size: 0.75rem;
+    color: var(--gray-color);
+    margin-top: 5px;
+    font-weight: 600;
+    background: white;
+    padding: 2px 6px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dark-theme .marker-time {
+    background: var(--medium-bg);
+    color: var(--text-light);
+}
+
+.timeline-content {
+    margin-left: 20px;
+}
+
+.video-card-timeline {
     display: flex;
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
     overflow: hidden;
-    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(37, 39, 159, 0.1);
+    transition: all 0.3s ease;
     cursor: pointer;
-    transition: transform 0.3s, box-shadow 0.3s;
-}
-
-.search-result-item:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-}
-
-.dark-theme .search-result-item:hover {
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-}
-
-.result-thumbnail {
     position: relative;
-    width: 320px;
-    height: 180px;
+}
+
+.dark-theme .video-card-timeline {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(37, 39, 159, 0.2);
+}
+
+.video-card-timeline:hover {
+    transform: translateX(10px);
+    box-shadow: 0 10px 30px rgba(37, 39, 159, 0.2);
+    border-color: rgba(37, 39, 159, 0.3);
+}
+
+.thumbnail-timeline {
+    position: relative;
+    width: 240px;
+    height: 135px;
     flex-shrink: 0;
     overflow: hidden;
-    background-color: #111;
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
 }
 
-.result-thumbnail img {
+.thumbnail-timeline img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.5s;
+    transition: transform 0.4s ease;
 }
 
-.search-result-item:hover .result-thumbnail img {
+.video-card-timeline:hover .thumbnail-timeline img {
     transform: scale(1.05);
 }
 
-.result-duration {
+.duration-timeline {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
-    background-color: rgba(0, 0, 0, 0.7);
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 3px 6px;
-    border-radius: 4px;
-    font-size: 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
 }
 
-.result-details {
-    padding: 15px;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.result-title {
-    font-weight: bold;
-    margin-bottom: 10px;
-    font-size: 18px;
-}
-
-.result-meta {
-    font-size: 14px;
-    color: var(--gray-color);
-    margin-bottom: 10px;
-}
-
-/* Channel info styles */
-.result-channel {
+.watched-indicator {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(76, 175, 80, 0.9);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
-    margin: 8px 0;
+    justify-content: center;
+    backdrop-filter: blur(10px);
 }
 
-.result-channel .avatar {
-    margin-right: 10px;
+.video-info-timeline {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.result-channel .channel-name {
-    font-size: 14px;
-    color: rgba(159, 37, 88, 0.7);
-    font-weight: 500;
-    transition: color 0.2s;
-}
-
-.dark-theme .result-channel .channel-name {
-    color: rgba(255, 176, 201, 0.9);
-}
-
-.result-channel .channel-name:hover {
-    color: var(--primary-color);
-    text-decoration: underline;
-}
-
-.result-description {
-    margin-top: 10px;
-    font-size: 14px;
+.video-title-timeline {
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin: 0;
     color: var(--text-dark);
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -180,99 +391,390 @@
     overflow: hidden;
 }
 
-.dark-theme .result-description {
+.dark-theme .video-title-timeline {
     color: var(--text-light);
 }
 
-.viewed-at {
-    margin-top: 10px;
-    font-style: italic;
-    font-size: 13px;
-    color: var(--gray-color);
-}
-
-/* Empty state styles */
-.empty-state {
-    text-align: center;
-    padding: 50px 20px;
-    background-color: rgba(159, 37, 88, 0.05);
-    border-radius: 12px;
-    margin: 20px 0;
-}
-
-.empty-icon {
-    width: 64px;
-    height: 64px;
-    opacity: 0.5;
-    margin-bottom: 15px;
-}
-
-.empty-state h3 {
-    margin-bottom: 10px;
-    color: var(--primary-color);
-}
-
-.empty-state p {
-    color: var(--gray-color);
-    margin-bottom: 20px;
-}
-
-.action-button {
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: var(--primary-color);
-    color: white;
-    border-radius: 30px;
+.channel-link-timeline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     text-decoration: none;
-    font-weight: bold;
-    transition: all 0.3s;
+    transition: all 0.3s ease;
+    width: fit-content;
 }
 
-.action-button:hover {
-    background-color: #1f2f4a;
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
+.channel-link-timeline:hover {
+    transform: translateX(3px);
 }
 
-/* Avatar styles */
-.avatar {
+.channel-avatar-timeline {
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--accent-color);
+    background: var(--accent-color);
     color: white;
     font-weight: bold;
-    flex-shrink: 0;
+    font-size: 0.7rem;
 }
 
-.avatar img {
+.channel-avatar-timeline img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.avatar-text {
-    font-size: 0.6em;
-    text-transform: uppercase;
+.channel-name-timeline {
+    color: rgba(159, 37, 88, 0.8);
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
-.avatar-medium {
-    width: 40px;
-    height: 40px;
+.dark-theme .channel-name-timeline {
+    color: rgba(255, 176, 201, 0.9);
 }
 
-/* Responsive adjustments */
+.video-meta-timeline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--gray-color);
+}
+
+.watched-info {
+    padding: 6px 12px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: #4caf50;
+    font-weight: 600;
+    width: fit-content;
+}
+
+.video-description-timeline {
+    color: var(--gray-color);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    margin: 0;
+    opacity: 0.8;
+}
+
+.timeline-actions {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    border-left: 1px solid rgba(37, 39, 159, 0.1);
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    color: #ff4757;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    opacity: 0.7;
+}
+
+.action-btn:hover {
+    background: rgba(255, 71, 87, 0.1);
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Разделители дат */
+.date-separator {
+    position: absolute;
+    left: -75px;
+    top: -15px;
+    z-index: 2;
+}
+
+.date-text {
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    color: white;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(37, 39, 159, 0.3);
+}
+
+/* Статистика */
+.watch-stats {
+    margin-top: 50px;
+    padding: 30px;
+    background: linear-gradient(135deg, rgba(37, 39, 159, 0.05) 0%, rgba(159, 37, 88, 0.05) 100%);
+    border-radius: 20px;
+    border: 1px solid rgba(37, 39, 159, 0.1);
+}
+
+.stats-card {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--accent-color);
+    text-shadow: 0 2px 4px rgba(37, 39, 159, 0.2);
+}
+
+.stat-label {
+    color: var(--gray-color);
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+/* Пустое состояние */
+.empty-state-history {
+    text-align: center;
+    padding: 60px 20px;
+    max-width: 500px;
+    margin: 40px auto;
+}
+
+.empty-illustration-history {
+    position: relative;
+    margin-bottom: 30px;
+    display: inline-block;
+}
+
+.empty-clock {
+    color: rgba(37, 39, 159, 0.3);
+    animation: float-clock 3s ease-in-out infinite;
+}
+
+.floating-dots {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.dot {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    animation: float-dot 3s ease-in-out infinite;
+}
+
+.dot:nth-child(1) {
+    top: -20px;
+    left: -10px;
+    animation-delay: 0s;
+}
+
+.dot:nth-child(2) {
+    top: -15px;
+    right: -15px;
+    animation-delay: 1s;
+}
+
+.dot:nth-child(3) {
+    bottom: -20px;
+    left: 0;
+    animation-delay: 2s;
+}
+
+.empty-state-history h3 {
+    font-size: 1.8rem;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+.empty-state-history p {
+    color: var(--gray-color);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+.start-learning-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+    color: white;
+    text-decoration: none;
+    border-radius: 30px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(37, 39, 159, 0.3);
+}
+
+.start-learning-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(37, 39, 159, 0.4);
+    text-decoration: none;
+    color: white;
+}
+
+/* Анимации */
+@keyframes tick {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(6deg); }
+    75% { transform: rotate(-6deg); }
+}
+
+@keyframes time-flow {
+    0%, 100% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+}
+
+@keyframes pulse-dot {
+    0%, 100% { transform: scale(1); box-shadow: 0 2px 8px rgba(37, 39, 159, 0.3); }
+    50% { transform: scale(1.1); box-shadow: 0 4px 12px rgba(37, 39, 159, 0.5); }
+}
+
+@keyframes float-clock {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(5deg); }
+}
+
+@keyframes float-dot {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 0.7; }
+    50% { transform: translateY(-10px) scale(1.3); opacity: 1; }
+}
+
+/* Адаптивность */
 @media (max-width: 768px) {
-    .search-result-item {
+    .watch-history-container {
+        padding: 15px;
+    }
+    
+    .page-header-history {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+        padding: 25px 20px;
+    }
+    
+    .page-title-history {
+        font-size: 2rem;
+    }
+    
+    .timeline-container {
+        padding-left: 40px;
+    }
+    
+    .timeline-line {
+        left: 20px;
+    }
+    
+    .timeline-marker {
+        left: -35px;
+    }
+    
+    .video-card-timeline {
         flex-direction: column;
     }
     
-    .result-thumbnail {
+    .thumbnail-timeline {
         width: 100%;
         height: 200px;
     }
+    
+    .timeline-actions {
+        border-left: none;
+        border-top: 1px solid rgba(37, 39, 159, 0.1);
+        justify-content: center;
+    }
+    
+    .stats-card {
+        flex-direction: column;
+        gap: 25px;
+    }
+    
+    .header-content-history {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .date-separator {
+        position: static;
+        margin: 20px 0 10px 0;
+        text-align: center;
+    }
 }
 </style>
+
+<script>
+function clearHistory() {
+    if (confirm('Вы уверены, что хотите очистить всю историю просмотров? Это действие нельзя отменить.')) {
+        // Здесь будет AJAX запрос для очистки истории
+        fetch('/api/clear-watch-history/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка при очистке истории: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка при очистке истории');
+        });
+    }
+}
+
+function removeFromHistory(videoId) {
+    if (confirm('Удалить это видео из истории?')) {
+        // Здесь будет AJAX запрос для удаления конкретного видео
+        fetch('/api/remove-from-history/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ video_id: videoId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Анимированное удаление элемента
+                const timelineItem = event.target.closest('.timeline-item');
+                timelineItem.style.transition = 'all 0.3s ease';
+                timelineItem.style.opacity = '0';
+                timelineItem.style.transform = 'translateX(-20px)';
+                
+                setTimeout(() => {
+                    timelineItem.remove();
+                }, 300);
+            } else {
+                alert('Ошибка при удалении видео: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка при удалении видео');
+        });
+    }
+}
+</script>
 {% endblock %}

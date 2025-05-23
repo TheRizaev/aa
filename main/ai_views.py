@@ -50,7 +50,7 @@ class AICreateMixin:
 - Объясняй сложные вещи простыми словами
 - Используй примеры и аналогии
 - Структурируй ответы для лучшего понимания
-- Отвечай на русском языке
+- Отвечай на узбекском языке
 - Учитывай предыдущий контекст беседы
 
 Ограничения:
@@ -84,13 +84,13 @@ class AICreateMixin:
         
         return "; ".join(context_parts) if context_parts else None
 
-    def get_chat_history_context(self, user, current_message, limit=10):
-        """Получает контекст из истории чата"""
+    def get_chat_history_context(self, user, current_message, context_limit=10):
+        """Получает контекст из истории чата (последние 10 сообщений для ИИ)"""
         from .models import ChatHistory
         
         try:
-            # Получаем последние сообщения (исключая текущее)
-            recent_messages = ChatHistory.get_context_for_ai(user, limit)
+            # Получаем последние сообщения для контекста (исключая текущее)
+            recent_messages = ChatHistory.get_context_for_ai(user, context_limit)
             
             # Добавляем системный промпт
             messages = [{"role": "system", "content": self.get_system_prompt()}]
@@ -141,8 +141,8 @@ class AIChatView(View, AICreateMixin):
             if not message:
                 return JsonResponse({'error': 'Сообщение не может быть пустым'}, status=400)
             
-            # Получаем контекст с историей чата
-            messages = self.get_chat_history_context(request.user, message)
+            # Получаем контекст с историей чата (последние 10 сообщений)
+            messages = self.get_chat_history_context(request.user, message, context_limit=10)
             
             # Создаем streaming response
             response = StreamingHttpResponse(
@@ -216,7 +216,7 @@ class AIChatView(View, AICreateMixin):
             yield f"data: {json.dumps({'done': True})}\n\n"
     
     def save_to_history(self, user, message, response, model_used=None, response_time=None):
-        """Сохраняет сообщение и ответ в историю"""
+        """Сохраняет сообщение и ответ в историю с ограничением до 100 сообщений"""
         try:
             from .models import ChatHistory
             
@@ -259,8 +259,8 @@ def ai_chat_simple(request):
         # Создаем экземпляр миксина для использования методов
         ai_mixin = AICreateMixin()
         
-        # Получаем контекст с историей
-        messages = ai_mixin.get_chat_history_context(request.user, message)
+        # Получаем контекст с историей (последние 10 сообщений)
+        messages = ai_mixin.get_chat_history_context(request.user, message, context_limit=10)
         
         # Получаем ответ от OpenAI
         try:
@@ -288,7 +288,7 @@ def ai_chat_simple(request):
                     tokens_used=response.usage.total_tokens if response.usage else None
                 )
                 
-                # Очищаем старые сообщения
+                # Очищаем старые сообщения (оставляем последние 100)
                 ChatHistory.cleanup_old_messages(request.user, keep_last=100)
             
             return JsonResponse({
@@ -328,12 +328,12 @@ def ai_chat_simple(request):
 @login_required
 @require_http_methods(["GET"])
 def get_chat_history(request):
-    """Получить историю чата пользователя"""
+    """Получить историю чата пользователя (последние 50 сообщений для отображения)"""
     try:
         from .models import ChatHistory
         
         limit = int(request.GET.get('limit', 50))
-        limit = min(limit, 100)  # Максимум 100 сообщений
+        limit = min(limit, 100)  # Максимум 100 сообщений для отображения
         
         history = ChatHistory.get_recent_history(request.user, limit)
         
@@ -390,7 +390,6 @@ def clear_chat_history(request):
         }, status=500)
 
 
-# Остальные функции остаются без изменений...
 @csrf_exempt
 @require_http_methods(["GET"])
 def ai_status(request):

@@ -269,12 +269,15 @@ class ChatHistory(models.Model):
     
     @classmethod
     def get_recent_history(cls, user, limit=100):
-        """Получить последние сообщения пользователя"""
+        """Получить последние сообщения пользователя для отображения в интерфейсе"""
         return cls.objects.filter(user=user).order_by('-created_at')[:limit]
     
     @classmethod
-    def get_context_for_ai(cls, user, limit=20):
-        """Получить контекст для AI (последние сообщения в формате для OpenAI)"""
+    def get_context_for_ai(cls, user, limit=10):
+        """
+        Получить контекст для AI (последние сообщения в формате для OpenAI)
+        Возвращает только последние 10 пар сообщений для контекста
+        """
         recent_messages = cls.objects.filter(
             user=user
         ).order_by('-created_at')[:limit]
@@ -289,16 +292,51 @@ class ChatHistory(models.Model):
     
     @classmethod
     def cleanup_old_messages(cls, user, keep_last=100):
-        """Удалить старые сообщения, оставив только последние"""
-        messages_to_delete = cls.objects.filter(
-            user=user
-        ).order_by('-created_at')[keep_last:]
+        """
+        Удалить старые сообщения, оставив только последние 100
+        Это поддерживает историю в разумных пределах
+        """
+        try:
+            # Получаем ID сообщений, которые нужно оставить
+            messages_to_keep = cls.objects.filter(
+                user=user
+            ).order_by('-created_at')[:keep_last].values_list('id', flat=True)
+            
+            # Удаляем все остальные сообщения
+            deleted_count = cls.objects.filter(
+                user=user
+            ).exclude(id__in=list(messages_to_keep)).delete()[0]
+            
+            return deleted_count
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error cleaning up old messages for user {user.username}: {e}")
+            return 0
+    
+    @classmethod
+    def get_user_stats(cls, user):
+        """Получить статистику использования чата пользователем"""
+        from datetime import datetime, timedelta
         
-        if messages_to_delete:
-            delete_ids = list(messages_to_delete.values_list('id', flat=True))
-            cls.objects.filter(id__in=delete_ids).delete()
-            return len(delete_ids)
-        return 0
+        total_messages = cls.objects.filter(user=user).count()
+        
+        # Сообщения за последние 7 дней
+        week_ago = datetime.now() - timedelta(days=7)
+        recent_messages = cls.objects.filter(
+            user=user,
+            created_at__gte=week_ago
+        ).count()
+        
+        # Средняя длина ответов
+        responses = cls.objects.filter(user=user).values_list('response', flat=True)
+        avg_response_length = sum(len(r) for r in responses) / len(responses) if responses else 0
+        
+        return {
+            'total_messages': total_messages,
+            'recent_messages': recent_messages,
+            'avg_response_length': round(avg_response_length, 1)
+        }
 
 class ChatSession(models.Model):
     """Модель для группировки сообщений в сессии"""

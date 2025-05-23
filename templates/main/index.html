@@ -44,7 +44,15 @@
                         {% if video.avatar_url %}
                             <img src="{{ video.avatar_url }}" alt="{{ video.display_name|default:video.channel }}" loading="lazy">
                         {% else %}
-                            <span class="avatar-text">{{ video.display_name|first|default:video.channel|first }}</span>
+                             <span class="avatar-text">
+                                {% if video.display_name %}
+                                    {{ video.display_name|first }}
+                                {% elif video.channel %}
+                                    {{ video.channel|first }}
+                                {% else %}
+                                    ?
+                                {% endif %}
+                            </span>
                         {% endif %}
                     </a>
                     <a href="/channel/{{ video.user_id }}/" class="channel-name">{{ video.display_name|default:video.channel }}</a>
