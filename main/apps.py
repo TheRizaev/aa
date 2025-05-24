@@ -8,10 +8,3 @@ class MainConfig(AppConfig):
     def ready(self):
         import main.signals  # Your existing imports
         import main.s3_utils  # Your existing imports
-        
-        try:
-            from main.ai_views import on_startup
-            on_startup()
-        except Exception as e:
-            import logging
-            logging.error(f"Failed to initialize voice assistant: {e}")

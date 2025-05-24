@@ -1,7 +1,8 @@
 from django.urls import path
 from . import views
 from . import gcs_views 
-from . import ai_views  # Импортируем новые AI views
+from . import ai_views
+from .voice_assistant import voice_chat, start_voice_recognition, synthesize_text
 from django.conf import settings
 
 urlpatterns = [
@@ -62,6 +63,9 @@ urlpatterns = [
     # Новые endpoints для истории чата
     path('api/get-chat-history/', ai_views.get_chat_history, name='get_chat_history'),
     path('api/clear-chat-history/', ai_views.clear_chat_history, name='clear_chat_history'),
+    path('api/voice-chat/', voice_chat, name='voice_chat'),
+    path('api/start-voice-recognition/', start_voice_recognition, name='start_voice_recognition'),
+    path('api/synthesize-text/', synthesize_text, name='synthesize_text'),
 ]
 
 if settings.DEBUG:
