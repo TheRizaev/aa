@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="{% static 'css/dropdown-styles.css' %}">
     <link rel="stylesheet" href="{% static 'css/fixes.css' %}">
     <link rel="stylesheet" href="{% static 'css/kronik-ai.css' %}">
+    <link rel="stylesheet" href="{% static 'css/voice-interface.css' %}">
     <!-- Add studio.css if we're on the studio page -->
     {% if request.path == '/studio/' %}
     <link rel="stylesheet" href="{% static 'css/studio.css' %}">
@@ -22,18 +23,6 @@
     
     <!-- CSRF Token for AJAX requests -->
     <meta name="csrf-token" content="{{ csrf_token }}">
-    
-    <!-- JavaScript variables for user authentication and profile -->
-    <script>
-        // Глобальные переменные для JavaScript
-        window.userAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
-        {% if user.is_authenticated %}
-            window.userInitial = "{{ user.profile.display_name|first|default:user.username|first }}";
-            {% if user_avatar_url %}
-                window.userAvatarUrl = "{{ user_avatar_url }}";
-            {% endif %}
-        {% endif %}
-    </script>
 </head>
 <body class="dark-theme">
     <div class="theme-transition dark"></div>
@@ -326,6 +315,7 @@
     <script src="{% static 'js/main.js' %}"></script>
     <script src="{% static 'js/search.js' %}"></script>
     <script src="{% static 'js/kronik-ai.js' %}"></script>
+    <script src="{% static 'js/voice-interface.js' %}"></script>
     <script src="{% static 'js/markdown-parser.js' %}"></script>
     <script src="{% static 'js/base.js' %}"></script>
     {% block scripts %}{% endblock %}
@@ -375,11 +365,11 @@
 }
 
 .subscription-item:hover {
-    background-color: rgba(159, 37, 88, 0.1);
+    background-color: rgba(37, 88, 159, 0.1);
 }
 
 .dark-theme .subscription-item:hover {
-    background-color: rgba(159, 37, 88, 0.2);
+    background-color: rgba(37, 88, 159, 0.2);
 }
 
 .subscription-avatar {
@@ -502,7 +492,7 @@
 .history-loading-spinner {
     width: 20px;
     height: 20px;
-    border: 2px solid rgba(159, 37, 88, 0.2);
+    border: 2px solid rgba(37, 88, 159, 0.2);
     border-top: 2px solid var(--accent-color);
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -592,7 +582,7 @@
 /* Статус истории чата */
 .chat-status {
     padding: 8px 12px;
-    background: rgba(159, 37, 88, 0.1);
+    background: rgba(37, 88, 159, 0.1);
     border-radius: 8px;
     margin: 10px 0;
     font-size: 12px;
@@ -638,7 +628,7 @@
 .context-menu {
     position: absolute;
     background: var(--light-bg);
-    border: 1px solid rgba(159, 37, 88, 0.2);
+    border: 1px solid rgba(37, 88, 159, 0.2);
     border-radius: 8px;
     padding: 5px 0;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
@@ -662,7 +652,7 @@
 }
 
 .context-menu-item:hover {
-    background: rgba(159, 37, 88, 0.1);
+    background: rgba(37, 88, 159, 0.1);
 }
 
 .context-menu-item svg {
@@ -757,7 +747,7 @@
 }
 
 .login-modal-close:hover {
-    background: rgba(159, 37, 88, 0.1);
+    background: rgba(37, 88, 159, 0.1);
     color: var(--primary-color);
 }
 
@@ -834,7 +824,7 @@
 }
 
 .login-modal-btn.register-btn:hover {
-    background: rgba(159, 37, 88, 0.1);
+    background: rgba(37, 88, 159, 0.1);
 }
 
 .login-modal-features {
@@ -845,7 +835,7 @@
 }
 
 .dark-theme .login-modal-features {
-    background: rgba(159, 37, 88, 0.1);
+    background: rgba(37, 88, 159, 0.1);
 }
 
 .login-modal-features h4 {
@@ -903,7 +893,7 @@
 
 .dark-theme .history-separator span {
     background: var(--dark-bg);
-    border-color: rgba(159, 37, 88, 0.2);
+    border-color: rgba(37, 88, 159, 0.2);
 }
 
 /* Улучшенные стили для сообщений из истории */
@@ -920,13 +910,13 @@
     top: 0;
     bottom: 0;
     width: 3px;
-    background: linear-gradient(to bottom, rgba(159, 37, 88, 0.3), rgba(159, 37, 88, 0.1));
+    background: linear-gradient(to bottom, rgba(159, 37, 88, 0.3), rgba(37, 88, 159, 0.1));
     border-radius: 3px;
 }
 
 .from-history .message-content {
     opacity: 0.9;
-    border: 1px solid rgba(159, 37, 88, 0.1);
+    border: 1px solid rgba(37, 88, 159, 0.1);
 }
 
 .dark-theme .from-history .message-content {
@@ -953,7 +943,7 @@
 .history-loading-spinner {
     width: 24px;
     height: 24px;
-    border: 3px solid rgba(159, 37, 88, 0.2);
+    border: 3px solid rgba(37, 88, 159, 0.2);
     border-top: 3px solid var(--accent-color);
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -1193,14 +1183,13 @@
     });
 </script>
 <script>
-// Устанавливаем начальные значения для пользовательских данных
 window.userAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
-{% if user.is_authenticated %}
-window.userInitial = "{{ user.profile.display_name|first|default:user.username|first }}";
-{% if user_avatar_url %}
-window.userAvatarUrl = "{{ user_avatar_url }}";
-{% endif %}
-{% endif %}
+    {% if user.is_authenticated %}
+        window.userInitial = "{{ user.profile.display_name|default_if_none:user.username|default_if_none:'U'|first }}";
+        {% if user_avatar_url %}
+            window.userAvatarUrl = "{{ user_avatar_url }}";
+        {% endif %}
+    {% endif %}
 
 // Применяем сохраненные настройки при загрузке
 document.addEventListener('DOMContentLoaded', function() {
