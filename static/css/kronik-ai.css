@@ -80,12 +80,12 @@
     flex-direction: column;
     transform: translateX(100%);
     transition: transform 0.3s ease, width 0.3s ease;
-    border-left: 1px solid rgba(159, 37, 88, 0.1);
+    border-left: 1px solid rgba(37, 88, 159, 0.1);
 }
 
 .dark-theme .ai-chat-container {
     background: var(--dark-bg);
-    border-left-color: rgba(159, 37, 88, 0.2);
+    border-left-color: rgba(37, 88, 159, 0.2);
 }
 
 /* Expanded state */
@@ -104,14 +104,14 @@
     align-items: center;
     justify-content: space-between;
     padding: 20px 24px;
-    border-bottom: 1px solid rgba(159, 37, 88, 0.1);
+    border-bottom: 1px solid rgba(37, 88, 159, 0.1);
     background: rgba(159, 37, 88, 0.02);
     flex-shrink: 0;
 }
 
 .dark-theme .ai-chat-header {
     background: rgba(159, 37, 88, 0.05);
-    border-bottom-color: rgba(159, 37, 88, 0.2);
+    border-bottom-color: rgba(37, 88, 159, 0.2);
 }
 
 .ai-chat-title {
@@ -250,7 +250,7 @@
 }
 
 .dark-theme .message-content {
-    background: rgba(159, 37, 88, 0.1);
+    background: rgba(37, 88, 159, 0.1);
     color: var(--text-light);
 }
 
@@ -423,14 +423,14 @@
 /* Chat Input */
 .ai-chat-input-container {
     padding: 24px;
-    border-top: 1px solid rgba(159, 37, 88, 0.1);
+    border-top: 1px solid rgba(37, 88, 159, 0.1);
     background: rgba(159, 37, 88, 0.02);
     flex-shrink: 0;
 }
 
 .dark-theme .ai-chat-input-container {
     background: rgba(159, 37, 88, 0.05);
-    border-top-color: rgba(159, 37, 88, 0.2);
+    border-top-color: rgba(37, 88, 159, 0.2);
 }
 
 /* Expanded view input styling */
@@ -446,7 +446,7 @@
     gap: 12px;
     align-items: flex-end;
     background: white;
-    border: 2px solid rgba(159, 37, 88, 0.1);
+    border: 2px solid rgba(37, 88, 159, 0.1);
     border-radius: 16px;
     padding: 12px 16px;
     transition: border-color 0.2s ease;
@@ -454,7 +454,7 @@
 
 .dark-theme .ai-chat-input-wrapper {
     background: var(--medium-bg);
-    border-color: rgba(159, 37, 88, 0.2);
+    border-color: rgba(37, 88, 159, 0.2);
 }
 
 .ai-chat-input-wrapper:focus-within {

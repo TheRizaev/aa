@@ -3,22 +3,17 @@ function createVideoCard(videoData, delay = 0) {
     card.className = 'video-card';
     card.style.animationDelay = `${delay}ms`;
     
-    // Добавляем обработчик клика, который перенаправляет на страницу видео
     card.onclick = function() {
-        // Используем составной ID: user_id + video_id
         const videoUrl = `/video/${videoData.user_id}__${videoData.video_id}/`;
         window.location.href = videoUrl;
     };
 
-    // Определяем путь к превью, с запасным вариантом
     const previewPath = videoData.thumbnail_url ? 
         videoData.thumbnail_url : 
         `/static/placeholder.jpg`;
 
-    // Определяем имя канала: предпочитаем display_name, затем channel, затем user_id
     const channelName = videoData.display_name || videoData.channel || videoData.user_id || "";
     
-    // Используем только изображение превью вместо видео
     card.innerHTML = `
         <div class="thumbnail">
             <img src="${previewPath}" alt="${videoData.title}" loading="lazy" onerror="this.src='/static/placeholder.jpg'">
@@ -37,7 +32,6 @@ function createVideoCard(videoData, delay = 0) {
     return card;
 }
 
-// Переменные для хранения данных
 let videoData = [];
 let totalVideos = 0;
 let currentIndex = 0;
@@ -45,7 +39,6 @@ const videosPerPage = 20;
 let loadingSpinner, videosContainer;
 let isLoading = false;
 
-// Загрузка видео из GCS
 function loadVideosFromGCS() {
     if (isLoading) return;
     
@@ -53,10 +46,8 @@ function loadVideosFromGCS() {
     
     console.log(`Fetching videos: offset=${currentIndex}, limit=${videosPerPage}`);
     
-    // Используем оптимизированный API endpoint с указанием, что thumbnail URL нужны только на первой загрузке
     const needThumbnails = currentIndex === 0 ? 'false' : 'false';
     
-    // Use list-all-videos endpoint to get videos from all users
     fetch(`/api/list-all-videos/?offset=${currentIndex}&limit=${videosPerPage}&only_metadata=${needThumbnails}`)
         .then(response => response.json())
         .then(data => {
@@ -92,7 +83,6 @@ function loadVideosFromGCS() {
                         `;
                         videosContainer.appendChild(emptyState);
                     } else {
-                        // Если это первичная загрузка, включим отложенную загрузку миниатюр
                         if (currentIndex === data.videos.length) {
                             setTimeout(lazyLoadThumbnails, 100);
                         }
@@ -108,7 +98,6 @@ function loadVideosFromGCS() {
         });
 }
 
-// Функция для перемешивания массива (алгоритм Фишера-Йейтса)
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -117,7 +106,6 @@ function shuffleArray(array) {
     return array;
 }
 
-// Загрузка дополнительных видео с отложенной загрузкой изображений
 function loadMoreVideos() {
     if (isLoading || currentIndex >= totalVideos) return;
     
@@ -126,7 +114,6 @@ function loadMoreVideos() {
     loadVideosFromGCS();
 }
 
-// Оптимизированный обработчик прокрутки с дебаунсингом
 let scrollTimeout;
 function handleScroll() {
     if (scrollTimeout) clearTimeout(scrollTimeout);
@@ -153,13 +140,11 @@ function showPopularSearchTerms(terms, searchDropdown) {
     
     searchDropdown.innerHTML = '';
     
-    // Create a header for popular terms
     const header = document.createElement('div');
     header.className = 'search-header';
     header.textContent = 'Популярные запросы';
     searchDropdown.appendChild(header);
     
-    // Add each popular term
     terms.forEach(term => {
         const termItem = document.createElement('div');
         termItem.className = 'search-term';
@@ -169,7 +154,6 @@ function showPopularSearchTerms(terms, searchDropdown) {
         `;
         
         termItem.addEventListener('click', function() {
-            // Set the search input to this term and redirect to search
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
                 searchInput.value = term;
@@ -183,20 +167,17 @@ function showPopularSearchTerms(terms, searchDropdown) {
     searchDropdown.classList.add('show');
 }
 
-// Функция для отображения результатов поиска в выпадающем списке
 function showSearchResults(results, searchDropdown, query) {
     if (!searchDropdown) return;
     
     searchDropdown.innerHTML = '';
     
     if (results.length === 0) {
-        // If no results, show a message and popular search terms
         const noResults = document.createElement('div');
         noResults.className = 'search-no-results';
         noResults.textContent = `Нет результатов для "${query}"`;
         searchDropdown.appendChild(noResults);
         
-        // Create a "perform search" item
         const searchAllItem = document.createElement('div');
         searchAllItem.className = 'search-all-item';
         searchAllItem.innerHTML = `
@@ -213,7 +194,6 @@ function showSearchResults(results, searchDropdown, query) {
         return;
     }
     
-    // First, add a "search for" item at the top
     const searchItem = document.createElement('div');
     searchItem.className = 'search-term';
     searchItem.innerHTML = `
@@ -227,22 +207,18 @@ function showSearchResults(results, searchDropdown, query) {
     
     searchDropdown.appendChild(searchItem);
     
-    // Then add video results
     const resultsHeader = document.createElement('div');
     resultsHeader.className = 'search-header';
     resultsHeader.textContent = 'Видео';
     searchDropdown.appendChild(resultsHeader);
     
-    // Limit the number of results for the dropdown
     const displayResults = results.slice(0, 5);
     
     displayResults.forEach(video => {
-        // Determine the path to the preview, with a fallback
         const previewPath = video.thumbnail_url ? 
             video.thumbnail_url : 
             `/static/placeholder.jpg`;
         
-        // Determine the channel name for display
         const channelName = video.display_name || video.channel || video.user_id || '';
             
         const resultItem = document.createElement('div');
@@ -264,7 +240,6 @@ function showSearchResults(results, searchDropdown, query) {
         searchDropdown.appendChild(resultItem);
     });
     
-    // If there are more results, add a link to "Show all results"
     if (results.length > 5) {
         const showMore = document.createElement('div');
         showMore.className = 'search-more';
@@ -273,7 +248,6 @@ function showSearchResults(results, searchDropdown, query) {
         showMore.addEventListener('click', function() {
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
-                // Redirect to search results page
                 window.location.href = `/search?query=${encodeURIComponent(searchInput.value)}`;
             }
         });
@@ -284,7 +258,6 @@ function showSearchResults(results, searchDropdown, query) {
     searchDropdown.classList.add('show');
 }
 
-// Function to search for videos locally
 function searchVideos(query) {
     if (!query.trim() || !videoData || !videoData.length) return [];
     
@@ -297,32 +270,26 @@ function searchVideos(query) {
         (video.user_id && video.user_id.toLowerCase().includes(query))
     );
     
-    // Сортируем результаты по релевантности
     results.sort((a, b) => {
         const titleA = (a.title || '').toLowerCase();
         const titleB = (b.title || '').toLowerCase();
         
-        // Точное совпадение с заголовком
         if (titleA === query && titleB !== query) return -1;
         if (titleB === query && titleA !== query) return 1;
         
-        // Заголовок начинается с запроса
         if (titleA.startsWith(query) && !titleB.startsWith(query)) return -1;
         if (titleB.startsWith(query) && !titleA.startsWith(query)) return 1;
         
-        // Заголовок содержит запрос
         const aContains = titleA.includes(query);
         const bContains = titleB.includes(query);
         if (aContains && !bContains) return -1;
         if (bContains && !aContains) return 1;
         
-        // Сортировка по просмотрам (если все остальное равно)
         const viewsA = parseInt(a.views || 0);
         const viewsB = parseInt(b.views || 0);
         return viewsB - viewsA;
     });
     
-    // Логируем, чтобы при отладке видеть, что нашлось
     console.log(`Поиск по "${query}" нашел ${results.length} результатов`);
     if (results.length > 0) {
         console.log("Первые 3 результата:", results.slice(0, 3).map(v => v.title));
@@ -331,7 +298,6 @@ function searchVideos(query) {
     return results;
 }
 
-// Функция для настройки поиска
 function setupSearch() {
     const searchInput = document.getElementById('search-input');
     const searchDropdown = document.getElementById('search-dropdown');
@@ -339,7 +305,6 @@ function setupSearch() {
     
     if (!searchInput || !searchDropdown) return;
     
-    // Popular search terms
     const popularSearchTerms = [
         "Программирование Python",
         "Математический анализ",
@@ -348,32 +313,27 @@ function setupSearch() {
         "История цивилизаций"
     ];
     
-    // Debouncing for search while typing
     let searchTimeout;
     searchInput.addEventListener('input', function() {
         if (searchTimeout) clearTimeout(searchTimeout);
         
         const query = this.value.trim();
         
-        // If query is empty, show popular search terms
         if (!query) {
             showPopularSearchTerms(popularSearchTerms, searchDropdown);
             return;
         }
         
-        // Add delay before search
         searchTimeout = setTimeout(() => {
-            // Make an API request to search
             fetch(`/api/list-all-videos/?offset=0&limit=10`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.videos) {
-                        // Filter videos by query
+                        const queryLower = query.toLowerCase();
                         const filteredVideos = data.videos.filter(video => {
                             const title = video.title && video.title.toLowerCase();
                             const description = video.description && video.description.toLowerCase();
                             const channel = (video.channel || video.display_name || video.user_id || "").toLowerCase();
-                            const queryLower = query.toLowerCase();
                             
                             return (title && title.includes(queryLower)) || 
                                    (description && description.includes(queryLower)) || 
@@ -401,7 +361,6 @@ function setupSearch() {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.videos) {
-                        // Filter videos by query
                         const queryLower = query.toLowerCase();
                         const filteredVideos = data.videos.filter(video => {
                             const title = video.title && video.title.toLowerCase();
@@ -448,7 +407,6 @@ function setupSearch() {
     });
 }
 
-// Функция для настройки сворачивания/разворачивания боковой панели
 function setupSidebar() {
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebar = document.getElementById('sidebar');
@@ -456,7 +414,6 @@ function setupSidebar() {
     
     if (!sidebarToggle || !sidebar || !mainContainer) return;
     
-    // Загружаем сохраненное состояние сайдбара
     const savedSidebarState = localStorage.getItem('kronik-sidebar-collapsed');
     if (savedSidebarState === 'true') {
         sidebar.classList.add('collapsed');
@@ -467,34 +424,29 @@ function setupSidebar() {
         sidebar.classList.toggle('collapsed');
         mainContainer.classList.toggle('expanded');
         
-        // Сохраняем состояние сайдбара
         const isCollapsed = sidebar.classList.contains('collapsed');
         localStorage.setItem('kronik-sidebar-collapsed', isCollapsed.toString());
     });
 }
 
 function setupLanguageToggle() {
-    const languageToggle = document.querySelector('.theme-toggle'); // Используем существующую кнопку
+    const languageToggle = document.querySelector('.theme-toggle');
     const body = document.body;
     const toggleText = document.querySelector('.toggle-text');
     
     if (!languageToggle || !toggleText) return;
     
-    // Языки и их отображение
     const languages = {
         'ru': { name: 'Русский', icon: '🇷🇺', next: 'en' },
         'en': { name: 'English', icon: '🇬🇧', next: 'uz' },
         'uz': { name: 'O\'zbek', icon: '🇺🇿', next: 'ru' }
     };
     
-    // Загружаем сохраненный язык при загрузке страницы
     let currentLang = localStorage.getItem('kronik-language') || 'ru';
     
-    // Устанавливаем начальный язык
     body.setAttribute('data-language', currentLang);
     updateLanguageUI(currentLang);
     
-    // Обновляем UI кнопки для отображения языка
     function updateLanguageUI(lang) {
         const langData = languages[lang];
         languageToggle.innerHTML = `
@@ -502,41 +454,33 @@ function setupLanguageToggle() {
             <span class="lang-text">${langData.name}</span>
         `;
         
-        // Применяем переводы
         applyTranslations(lang);
     }
     
-    // Обработчик клика для переключения языка
     languageToggle.addEventListener('click', function() {
         currentLang = languages[currentLang].next;
         body.setAttribute('data-language', currentLang);
         updateLanguageUI(currentLang);
         
-        // Сохраняем выбранный язык в localStorage
         localStorage.setItem('kronik-language', currentLang);
     });
 }
 
-// Function to make sidebar menu items active when clicked
 function setupSidebarMenuItems() {
     const menuItems = document.querySelectorAll('.sidebar .menu-item');
     
     if (!menuItems.length) return;
     
     menuItems.forEach(item => {
-        // Skip items that already have onclick handlers (like Studio and Home)
         if (item.getAttribute('onclick')) return;
         
         item.addEventListener('click', function() {
-            // Remove active class from all items
             menuItems.forEach(i => i.classList.remove('active'));
-            // Add active class to clicked item
             this.classList.add('active');
         });
     });
 }
 
-// Функция для настройки переключения темы
 function setupThemeToggle() {
     const themeToggle = document.querySelector('.theme-toggle');
     const body = document.body;
@@ -545,7 +489,6 @@ function setupThemeToggle() {
     
     if (!themeToggle || !themeTransition || !toggleText) return;
     
-    // Загружаем сохраненную тему при загрузке страницы
     const savedTheme = localStorage.getItem('kronik-theme');
     if (savedTheme) {
         if (savedTheme === 'light') {
@@ -565,10 +508,8 @@ function setupThemeToggle() {
             body.classList.toggle('dark-theme');
             body.classList.toggle('light-theme');
             
-            // Обновляем текст кнопки
             const newTheme = body.classList.contains('light-theme') ? 'light' : 'dark';
             
-            // Сохраняем выбранную тему в localStorage
             localStorage.setItem('kronik-theme', newTheme);
         }, 500);
         
@@ -578,7 +519,6 @@ function setupThemeToggle() {
     });
 }
 
-// Функция для настройки пользовательского меню
 function setupUserMenu() {
     const userMenu = document.querySelector('.user-menu');
     const userDropdown = document.querySelector('.user-dropdown');
@@ -590,7 +530,6 @@ function setupUserMenu() {
         userDropdown.classList.toggle('show');
     });
     
-    // Закрытие выпадающего меню по клику вне него
     document.addEventListener('click', function(e) {
         if (userMenu && userDropdown && 
             !userMenu.contains(e.target)) {
@@ -599,7 +538,6 @@ function setupUserMenu() {
     });
 }
 
-// Функция для настройки мобильного меню
 function setupMobileMenu() {
     const mobileMenuButton = document.querySelector('.mobile-menu-button');
     const sidebar = document.querySelector('.sidebar');
@@ -620,7 +558,6 @@ function setupMobileMenu() {
     });
 }
 
-// Функция для настройки категорий
 function setupCategories() {
     const categoryChips = document.querySelectorAll('.category-chip');
     
@@ -628,46 +565,32 @@ function setupCategories() {
     
     categoryChips.forEach(chip => {
         chip.addEventListener('click', function() {
-            // Убираем активный класс у всех элементов
             categoryChips.forEach(c => c.classList.remove('active'));
-            // Добавляем активный класс к выбранному элементу
             this.classList.add('active');
             
-            // Сбрасываем индекс для правильной загрузки
             currentIndex = 0;
             
-            // Очищаем контейнер
             videosContainer.innerHTML = '';
             
-            // Показываем спиннер загрузки
-            
-            // Добавляем небольшую задержку для отображения UX загрузки
             setTimeout(() => {
-                // Если выбрана категория "Все", загружаем все видео
                 if (category === 'все') {
-                    // Перемешиваем видео заново для разнообразия
                     shuffleArray(videoData);
                     
-                    // Загружаем первую партию видео
                     for (let i = 0; i < Math.min(videosPerPage, videoData.length); i++) {
-                        const card = createVideoCard(videoData[i], i * 50); // Уменьшаем задержку для быстрой загрузки
+                        const card = createVideoCard(videoData[i], i * 50);
                         videosContainer.appendChild(card);
                         currentIndex++;
                     }
                 } else {
-                    // Фильтруем видео по категории
                     const filteredVideos = videoData.filter(video => {
-                        // Проверяем категорию видео (если она есть)
                         if (video.category) {
                             return video.category.toLowerCase().includes(category);
                         }
                         return false;
                     });
                     
-                    // Перемешиваем отфильтрованные видео
                     shuffleArray(filteredVideos);
                     
-                    // Если нет видео в этой категории
                     if (filteredVideos.length === 0) {
                         const emptyState = document.createElement('div');
                         emptyState.className = 'empty-state';
@@ -680,21 +603,17 @@ function setupCategories() {
                         `;
                         videosContainer.appendChild(emptyState);
                     } else {
-                        // Добавляем отфильтрованные видео
                         for (let i = 0; i < Math.min(videosPerPage, filteredVideos.length); i++) {
                             const card = createVideoCard(filteredVideos[i], i * 50);
                             videosContainer.appendChild(card);
                         }
                     }
                 }
-                
-                // Скрываем спиннер загрузки
             }, 300);
         });
     });
 }
 
-// Функция применения переводов
 function applyTranslations(lang) {
     const translations = {
         'ru': {
@@ -786,7 +705,6 @@ function applyTranslations(lang) {
         }
     };
     
-    // Применяем переводы к элементам с data-translate атрибутом
     document.querySelectorAll('[data-translate]').forEach(element => {
         const key = element.getAttribute('data-translate');
         if (translations[lang] && translations[lang][key]) {
@@ -794,13 +712,11 @@ function applyTranslations(lang) {
         }
     });
     
-    // Обновляем placeholder у поиска
     const searchInput = document.getElementById('search-input');
     if (searchInput && translations[lang]['search-placeholder']) {
         searchInput.placeholder = translations[lang]['search-placeholder'];
     }
     
-    // Обновляем текст в меню
     const menuTranslations = {
         'Главная': translations[lang]['main-page'],
         'Home': translations[lang]['main-page'],
@@ -846,7 +762,6 @@ function applyTranslations(lang) {
         'VOSITALAR': translations[lang]['tools-section']
     };
     
-    // Обновляем текст в sidebar
     document.querySelectorAll('.menu-text, .sidebar-title').forEach(element => {
         const currentText = element.textContent.trim();
         if (menuTranslations[currentText]) {
@@ -854,7 +769,6 @@ function applyTranslations(lang) {
         }
     });
     
-    // Обновляем dropdown menu
     const dropdownTranslations = {
         'Мой профиль': translations[lang]['profile'],
         'My profile': translations[lang]['profile'],
@@ -886,7 +800,6 @@ function applyTranslations(lang) {
         }
     });
     
-    // Обновляем кнопки входа/регистрации
     const loginButton = document.querySelector('.login-button');
     const registerButton = document.querySelector('.register-button');
     
@@ -897,7 +810,6 @@ function applyTranslations(lang) {
         registerButton.textContent = translations[lang]['register'];
     }
     
-    // Обновляем уведомления
     const notificationHeader = document.querySelector('.notification-header h3');
     if (notificationHeader) {
         notificationHeader.textContent = translations[lang]['notifications'];
@@ -913,7 +825,6 @@ function applyTranslations(lang) {
         authRequired.textContent = translations[lang]['auth-required'];
     }
     
-    // Обновляем кнопки в уведомлениях
     const notifLoginBtn = document.querySelector('.notification-login-btn');
     const notifRegisterBtn = document.querySelector('.notification-register-btn');
     
@@ -924,11 +835,23 @@ function applyTranslations(lang) {
         notifRegisterBtn.textContent = translations[lang]['register'];
     }
     
-    // Обновляем подписки
     const noSubscriptions = document.querySelector('.no-subscriptions');
     if (noSubscriptions) {
         noSubscriptions.textContent = translations[lang]['no-subscriptions'];
     }
+}
+
+// Новая функция для отображения Markdown-контента
+function displayMarkdownContent(content, containerId = 'content') {
+    const container = document.getElementById(containerId);
+    if (!container) {
+        console.error('Container not found:', containerId);
+        return;
+    }
+    
+    const parser = new MarkdownParser();
+    const htmlContent = parser.parse(content);
+    container.innerHTML = htmlContent;
 }
 
 document.querySelectorAll('.show-replies-btn').forEach(button => {
@@ -940,12 +863,10 @@ document.querySelectorAll('.show-replies-btn').forEach(button => {
             const replyCount = repliesContainer.querySelectorAll('.qa-reply').length;
             
             if (isShown) {
-                // Hide replies
                 repliesContainer.style.display = 'none';
                 this.textContent = `Показать ответы (${replyCount})`;
                 this.setAttribute('data-shown', 'false');
             } else {
-                // Show replies
                 repliesContainer.style.display = 'block';
                 this.textContent = 'Скрыть ответы';
                 this.setAttribute('data-shown', 'true');
@@ -953,7 +874,7 @@ document.querySelectorAll('.show-replies-btn').forEach(button => {
         }
     });
 });
-// Инициализация при загрузке страницы
+
 document.addEventListener('DOMContentLoaded', function() {
     videosContainer = document.getElementById('videos-container');
     
@@ -966,7 +887,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setupSearch();
     setupSidebar();
-    setupLanguageToggle(); // Заменяем setupThemeToggle на setupLanguageToggle
+    setupLanguageToggle();
     setupUserMenu();
     setupMobileMenu();
     setupCategories();

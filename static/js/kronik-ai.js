@@ -59,39 +59,6 @@ document.addEventListener('DOMContentLoaded', function() {
         aiChatSend.disabled = !hasText || isTyping;
     }
 
-    function addMessage(content, isUser = false) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = isUser ? 'user-message' : 'ai-message';
-        
-        let avatarHtml = '';
-        if (isUser) {
-            // Get user avatar or initial
-            {% if user.is_authenticated %}
-                {% if user_avatar_url %}
-                    avatarHtml = `<div class="user-avatar"><img src="{{ user_avatar_url }}" alt="User" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;"></div>`;
-                {% else %}
-                    avatarHtml = `<div class="user-avatar">{{ user.profile.display_name|first|default:user.username|first }}</div>`;
-                {% endif %}
-            {% else %}
-                avatarHtml = `<div class="user-avatar">Г</div>`;
-            {% endif %}
-        } else {
-            avatarHtml = `<div class="ai-avatar"><span class="kronik-logo">K</span></div>`;
-        }
-        
-        messageDiv.innerHTML = `
-            ${avatarHtml}
-            <div class="message-content">
-                <p>${content}</p>
-            </div>
-        `;
-        
-        aiChatMessages.appendChild(messageDiv);
-        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-        
-        return messageDiv;
-    }
-
     function addTypingIndicator() {
         const typingDiv = document.createElement('div');
         typingDiv.className = 'ai-message typing-message';
