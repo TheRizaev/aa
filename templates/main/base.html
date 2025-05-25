@@ -235,7 +235,7 @@
         <div class="ai-chat-icon">
             <span class="kronik-logo">K</span>
         </div>
-        <div class="ai-chat-pulse"></div>
+
     </div>
 
     <!-- AI Chat Interface -->
@@ -308,13 +308,12 @@
         <div class="ai-chat-icon">
             <span class="kronik-logo">K</span>
         </div>
-        <div class="ai-chat-pulse"></div>
+
     </div>
     {% endif %}
 
     <script src="{% static 'js/main.js' %}"></script>
     <script src="{% static 'js/search.js' %}"></script>
-    <script src="{% static 'js/kronik-ai.js' %}"></script>
     <script src="{% static 'js/voice-interface.js' %}"></script>
     <script src="{% static 'js/markdown-parser.js' %}"></script>
     <script src="{% static 'js/base.js' %}"></script>
@@ -512,14 +511,6 @@
     text-align: center;
     color: var(--gray-color);
     font-size: 12px;
-}
-
-.history-separator::before,
-.history-separator::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: rgba(37, 94, 159, 0.2);
 }
 
 .history-separator span {
@@ -880,7 +871,7 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(159, 37, 88, 0.3), transparent);
+    background: linear-gradient(to right, transparent, rgba(37, 90, 159, 0.3), transparent);
 }
 
 .history-separator span {
@@ -901,17 +892,6 @@
     animation: none !important;
     opacity: 0.8;
     position: relative;
-}
-
-.from-history::before {
-    content: '';
-    position: absolute;
-    left: -5px;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: linear-gradient(to bottom, rgba(159, 37, 88, 0.3), rgba(37, 88, 159, 0.1));
-    border-radius: 3px;
 }
 
 .from-history .message-content {

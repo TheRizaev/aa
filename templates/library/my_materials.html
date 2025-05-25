@@ -1,0 +1,953 @@
+{% extends 'main/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Мои материалы - KRONIK{% endblock %}
+
+{% block content %}
+<div class="my-materials-container">
+    <!-- Header -->
+    <div class="my-materials-header">
+        <div class="header-content">
+            <h1 class="page-title">
+                <span class="title-icon">💾</span>
+                Мои материалы
+            </h1>
+            <p class="page-subtitle">Материалы, которые вы скачали из библиотеки KRONIK</p>
+        </div>
+        
+        <div class="header-stats">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_downloads|default:"0" }}</div>
+                <div class="stat-label">скачанных материалов</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="materials-navigation">
+        <a href="{% url 'library' %}" class="nav-btn secondary">
+            <img src="{% static 'icons/back.svg' %}" alt="Назад" width="16" height="16">
+            Вернуться в библиотеку
+        </a>
+        
+        <div class="view-options">
+            <button class="view-btn grid-view active" data-view="grid">
+                <img src="{% static 'icons/grid.svg' %}" alt="Сетка" width="16" height="16">
+            </button>
+            <button class="view-btn list-view" data-view="list">
+                <img src="{% static 'icons/list.svg' %}" alt="Список" width="16" height="16">
+            </button>
+        </div>
+    </div>
+
+    <!-- Materials Content -->
+    {% if materials %}
+        <!-- Grid View -->
+        <div class="materials-grid-view active" id="grid-view">
+            <div class="materials-grid">
+                {% for material in materials %}
+                <div class="material-card">
+                    <div class="material-preview">
+                        {% if material.preview_image_path %}
+                            <img src="#" class="material-preview-img lazy-preview" 
+                                 data-user-id="{{ material.user_id }}" 
+                                 data-material-id="{{ material.material_id }}" 
+                                 alt="{{ material.title }}">
+                        {% else %}
+                            <div class="material-type-icon">
+                                {{ material.material_type|default:"📄" }}
+                            </div>
+                        {% endif %}
+                        <div class="downloaded-badge">
+                            <img src="{% static 'icons/check.svg' %}" alt="Скачано" width="14" height="14">
+                            Скачано
+                        </div>
+                    </div>
+                    
+                    <div class="material-info">
+                        <h3 class="material-title">{{ material.title }}</h3>
+                        
+                        <div class="material-meta">
+                            <div class="material-author">
+                                <div class="author-avatar">
+                                    {% if material.author_avatar_url %}
+                                        <img src="{{ material.author_avatar_url }}" alt="{{ material.author_display_name }}">
+                                    {% else %}
+                                        <span class="avatar-text">{{ material.author_display_name|first }}</span>
+                                    {% endif %}
+                                </div>
+                                <span class="author-name">{{ material.author_display_name }}</span>
+                            </div>
+                            
+                            <div class="download-info">
+                                <span class="download-date">{{ material.downloaded_at_formatted }}</span>
+                                <span class="file-size">{{ material.formatted_file_size|default:"—" }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="material-actions">
+                            <button class="btn btn-primary re-download-btn" 
+                                    data-material-id="{{ material.user_id }}__{{ material.material_id }}">
+                                <img src="{% static 'icons/download.svg' %}" alt="Скачать" width="16" height="16">
+                                Скачать снова
+                            </button>
+                            <a href="{% url 'material_detail' material.user_id|add:'__'|add:material.material_id %}" 
+                               class="btn btn-secondary">
+                                <img src="{% static 'icons/eye.svg' %}" alt="Просмотр" width="16" height="16">
+                                Подробнее
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- List View -->
+        <div class="materials-list-view" id="list-view">
+            <div class="materials-list">
+                {% for material in materials %}
+                <div class="material-list-item">
+                    <div class="material-preview-small">
+                        {% if material.preview_image_path %}
+                            <img src="#" class="material-preview-img-small lazy-preview" 
+                                 data-user-id="{{ material.user_id }}" 
+                                 data-material-id="{{ material.material_id }}" 
+                                 alt="{{ material.title }}">
+                        {% else %}
+                            <div class="material-type-icon-small">
+                                {{ material.material_type|default:"📄" }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="material-details">
+                        <div class="material-main-info">
+                            <h3 class="material-title">{{ material.title }}</h3>
+                            <p class="material-description">{{ material.description|truncatechars:150 }}</p>
+                        </div>
+                        
+                        <div class="material-meta-info">
+                            <div class="author-info">
+                                <div class="author-avatar-small">
+                                    {% if material.author_avatar_url %}
+                                        <img src="{{ material.author_avatar_url }}" alt="{{ material.author_display_name }}">
+                                    {% else %}
+                                        <span class="avatar-text-small">{{ material.author_display_name|first }}</span>
+                                    {% endif %}
+                                </div>
+                                <span class="author-name">{{ material.author_display_name }}</span>
+                            </div>
+                            
+                            <div class="file-info">
+                                <span class="file-size">{{ material.formatted_file_size|default:"—" }}</span>
+                                <span class="download-date">Скачано: {{ material.downloaded_at_formatted }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="material-actions-list">
+                        <button class="btn btn-primary re-download-btn" 
+                                data-material-id="{{ material.user_id }}__{{ material.material_id }}">
+                            <img src="{% static 'icons/download.svg' %}" alt="Скачать" width="16" height="16">
+                            Скачать
+                        </button>
+                        <a href="{% url 'material_detail' material.user_id|add:'__'|add:material.material_id %}" 
+                           class="btn btn-secondary">
+                            <img src="{% static 'icons/eye.svg' %}" alt="Просмотр" width="16" height="16">
+                            Подробнее
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if materials.has_other_pages %}
+        <div class="pagination-wrapper">
+            <div class="pagination">
+                {% if materials.has_previous %}
+                    <a href="?page={{ materials.previous_page_number }}" class="pagination-btn">‹ Назад</a>
+                {% endif %}
+                
+                <span class="pagination-info">
+                    Страница {{ materials.number }} из {{ materials.paginator.num_pages }}
+                </span>
+                
+                {% if materials.has_next %}
+                    <a href="?page={{ materials.next_page_number }}" class="pagination-btn">Далее ›</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <!-- Empty State -->
+        <div class="empty-materials-state">
+            <div class="empty-content">
+                <div class="empty-icon">📚</div>
+                <h3>У вас пока нет скачанных материалов</h3>
+                <p>Начните изучать материалы из нашей библиотеки!</p>
+                <a href="{% url 'library' %}" class="btn btn-primary">
+                    <img src="{% static 'icons/book.svg' %}" alt="Библиотека" width="16" height="16">
+                    Перейти в библиотеку
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+/* My Materials Styles */
+.my-materials-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.my-materials-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 30px;
+    background: linear-gradient(135deg, rgba(37, 88, 159, 0.1), rgba(67, 190, 235, 0.05));
+    border-radius: 20px;
+    border-left: 5px solid var(--accent-color);
+}
+
+.header-content {
+    flex: 1;
+}
+
+.page-title {
+    font-size: 32px;
+    margin: 0 0 10px 0;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.title-icon {
+    font-size: 40px;
+    animation: pulse 2s infinite;
+}
+
+.page-subtitle {
+    color: var(--gray-color);
+    font-size: 16px;
+    margin: 0;
+}
+
+.header-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.stat-card {
+    text-align: center;
+    padding: 20px 25px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 15px;
+    min-width: 120px;
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.1);
+}
+
+.dark-theme .stat-card {
+    background: rgba(7, 24, 31, 0.7);
+}
+
+.stat-number {
+    font-size: 32px;
+    font-weight: bold;
+    color: var(--accent-color);
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--gray-color);
+    line-height: 1.2;
+}
+
+/* Navigation */
+.materials-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(37, 39, 159, 0.1);
+}
+
+.dark-theme .materials-navigation {
+    background: rgba(7, 24, 31, 0.7);
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.nav-btn.secondary {
+    background: transparent;
+    color: var(--gray-color);
+    border: 2px solid var(--gray-color);
+}
+
+.nav-btn.secondary:hover {
+    background: rgba(37, 39, 159, 0.1);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.view-options {
+    display: flex;
+    gap: 5px;
+    background: rgba(37, 39, 159, 0.1);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.view-btn {
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.view-btn.active {
+    background: var(--accent-color);
+    color: white;
+}
+
+.view-btn:hover:not(.active) {
+    background: rgba(37, 39, 159, 0.2);
+}
+
+/* Grid View */
+.materials-grid-view {
+    display: none;
+}
+
+.materials-grid-view.active {
+    display: block;
+}
+
+.materials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.material-card {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 15px;
+    overflow: hidden;
+    transition: all 0.3s;
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.1);
+    border: 2px solid transparent;
+}
+
+.dark-theme .material-card {
+    background: rgba(7, 24, 31, 0.7);
+}
+
+.material-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(37, 39, 159, 0.2);
+    border-color: var(--accent-color);
+}
+
+.material-preview {
+    position: relative;
+    height: 180px;
+    background: linear-gradient(135deg, rgba(37, 88, 159, 0.1), rgba(67, 190, 235, 0.05));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.material-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.material-type-icon {
+    font-size: 64px;
+    opacity: 0.7;
+}
+
+.downloaded-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(46, 204, 113, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.material-info {
+    padding: 20px;
+}
+
+.material-title {
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    line-height: 1.4;
+    color: var(--primary-color);
+}
+
+.material-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.material-author {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.author-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.author-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-text {
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.author-name {
+    font-weight: 500;
+    color: var(--gray-color);
+    font-size: 14px;
+}
+
+.download-info {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+    font-size: 12px;
+    color: var(--gray-color);
+}
+
+.download-date {
+    margin-bottom: 2px;
+}
+
+.material-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.re-download-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn.btn-secondary {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+/* List View */
+.materials-list-view {
+    display: none;
+}
+
+.materials-list-view.active {
+    display: block;
+}
+
+.materials-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.material-list-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    transition: all 0.3s;
+    box-shadow: 0 3px 10px rgba(37, 39, 159, 0.1);
+}
+
+.dark-theme .material-list-item {
+    background: rgba(7, 24, 31, 0.7);
+}
+
+.material-list-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(37, 39, 159, 0.15);
+}
+
+.material-preview-small {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, rgba(37, 88, 159, 0.1), rgba(67, 190, 235, 0.05));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.material-preview-img-small {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.material-type-icon-small {
+    font-size: 32px;
+    opacity: 0.7;
+}
+
+.material-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.material-main-info {
+    flex: 1;
+}
+
+.material-title {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: var(--primary-color);
+}
+
+.material-description {
+    color: var(--gray-color);
+    line-height: 1.4;
+    font-size: 14px;
+    margin: 0;
+}
+
+.material-meta-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.author-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.author-avatar-small {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.author-avatar-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-text-small {
+    color: white;
+    font-weight: bold;
+    font-size: 10px;
+}
+
+.file-info {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+    font-size: 12px;
+    color: var(--gray-color);
+}
+
+.material-actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 140px;
+}
+
+.material-actions-list .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+/* Empty State */
+.empty-materials-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+.empty-content {
+    text-align: center;
+    max-width: 500px;
+    padding: 50px;
+    background: rgba(159, 37, 88, 0.05);
+    border-radius: 20px;
+    border: 2px dashed rgba(37, 39, 159, 0.3);
+}
+
+.empty-icon {
+    font-size: 80px;
+    margin-bottom: 25px;
+    opacity: 0.7;
+    animation: float 3s ease-in-out infinite;
+}
+
+.empty-content h3 {
+    margin-bottom: 15px;
+    color: var(--primary-color);
+    font-size: 24px;
+}
+
+.empty-content p {
+    color: var(--gray-color);
+    margin-bottom: 25px;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+/* Pagination */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 15px 30px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.1);
+}
+
+.dark-theme .pagination {
+    background: rgba(7, 24, 31, 0.7);
+}
+
+.pagination-btn {
+    padding: 8px 16px;
+    background: var(--accent-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.pagination-btn:hover {
+    background: #1f2f4a;
+    transform: translateY(-2px);
+}
+
+.pagination-info {
+    font-weight: 500;
+    color: var(--gray-color);
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .my-materials-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+    
+    .materials-navigation {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .materials-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .material-list-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+    
+    .material-details {
+        order: 1;
+    }
+    
+    .material-preview-small {
+        order: 2;
+        width: 100%;
+        height: 120px;
+        align-self: center;
+    }
+    
+    .material-actions-list {
+        order: 3;
+        flex-direction: row;
+        min-width: unset;
+    }
+    
+    .material-meta-info {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    
+    .author-info {
+        justify-content: center;
+    }
+    
+    .file-info {
+        align-items: center;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // View switching functionality
+    const viewButtons = document.querySelectorAll('.view-btn');
+    const gridView = document.getElementById('grid-view');
+    const listView = document.getElementById('list-view');
+    
+    viewButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const viewType = this.getAttribute('data-view');
+            
+            // Update active button
+            viewButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Switch views
+            if (viewType === 'grid') {
+                gridView.classList.add('active');
+                listView.classList.remove('active');
+                localStorage.setItem('materialsViewType', 'grid');
+            } else {
+                listView.classList.add('active');
+                gridView.classList.remove('active');
+                localStorage.setItem('materialsViewType', 'list');
+            }
+        });
+    });
+    
+    // Restore saved view type
+    const savedViewType = localStorage.getItem('materialsViewType') || 'grid';
+    const targetButton = document.querySelector(`[data-view="${savedViewType}"]`);
+    if (targetButton) {
+        targetButton.click();
+    }
+    
+    // Handle re-downloads
+    const reDownloadButtons = document.querySelectorAll('.re-download-btn');
+    
+    reDownloadButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const materialId = this.getAttribute('data-material-id');
+            downloadMaterial(materialId, this);
+        });
+    });
+    
+    function downloadMaterial(materialId, button) {
+        // Show loading state
+        const originalText = button.innerHTML;
+        button.innerHTML = '<img src="{% static "icons/loading.svg" %}" width="16" height="16"> Скачивание...';
+        button.disabled = true;
+        
+        fetch(`/api/download-material/${materialId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Create invisible download link
+                    const link = document.createElement('a');
+                    link.href = data.download_url;
+                    link.download = data.filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Show success message
+                    button.innerHTML = '<img src="{% static "icons/check.svg" %}" width="16" height="16"> Скачано!';
+                    button.style.background = '#2ecc71';
+                    
+                    // Reset button after 3 seconds
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.style.background = '';
+                        button.disabled = false;
+                    }, 3000);
+                } else {
+                    throw new Error(data.error || 'Ошибка при скачивании');
+                }
+            })
+            .catch(error => {
+                console.error('Download error:', error);
+                
+                // Show error state
+                button.innerHTML = '<img src="{% static "icons/error.svg" %}" width="16" height="16"> Ошибка';
+                button.style.background = '#ff4757';
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = '';
+                    button.disabled = false;
+                }, 3000);
+                
+                alert('Ошибка при скачивании: ' + error.message);
+            });
+    }
+    
+    // Lazy load preview images (same as in library template)
+    const lazyPreviews = document.querySelectorAll('.lazy-preview');
+    
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const materialId = img.getAttribute('data-material-id');
+                    const userId = img.getAttribute('data-user-id');
+                    
+                    if (materialId && userId) {
+                        const cachedUrl = sessionStorage.getItem(`preview_${userId}__${materialId}`);
+                        
+                        if (cachedUrl) {
+                            img.src = cachedUrl;
+                            imageObserver.unobserve(img);
+                        } else {
+                            fetch(`/api/get-material-preview/${userId}__${materialId}/`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success && data.url) {
+                                        sessionStorage.setItem(`preview_${userId}__${materialId}`, data.url);
+                                        img.src = data.url;
+                                        imageObserver.unobserve(img);
+                                    } else {
+                                        img.style.display = 'none';
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error loading preview:', error);
+                                    img.style.display = 'none';
+                                });
+                        }
+                    }
+                }
+            });
+        }, {
+            rootMargin: '200px 0px',
+            threshold: 0.01
+        });
+        
+        lazyPreviews.forEach(img => {
+            imageObserver.observe(img);
+        });
+    }
+});
+</script>
+{% endblock %}
