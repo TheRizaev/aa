@@ -15,7 +15,7 @@ class VoiceInterface {
         
         // Settings
         this.silenceThreshold = 30; // Silence threshold in dB
-        this.silenceDelay = 2500; // 2.5 seconds of silence
+        this.silenceDelay = 4000; // 2.5 seconds of silence
         
         this.init();
     }
@@ -45,7 +45,7 @@ class VoiceInterface {
         this.voiceButton.id = 'voice-chat-button';
         this.voiceButton.className = 'voice-chat-button';
         this.voiceButton.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="voice-icon">
                 <path d="M12 1C10.34 1 9 2.34 9 4V12C9 13.66 10.34 15 12 15C13.66 15 15 13.66 15 12V4C15 2.34 13.66 1 12 1Z" fill="currentColor"/>
                 <path d="M17 12C17 14.76 14.76 17 12 17C9.24 17 7 14.76 7 12H5C5 15.53 7.61 18.47 11 18.93V23H13V18.93C16.39 18.47 19 15.53 19 12H17Z" fill="currentColor"/>
             </svg>
@@ -65,16 +65,36 @@ class VoiceInterface {
         
         this.voiceOverlay.innerHTML = `
             <div class="voice-overlay-content">
-                <div class="voice-wave-container" id="voice-wave-container">
-                    <canvas id="voice-wave-canvas"></canvas>
+                <div class="voice-logo-container">
+                    <div class="kronik-logo-large">K</div>
+                    <div class="kronik-subtitle">KRONIK AI</div>
                 </div>
+                
+                <div class="voice-visualizer-container">
+                    <div class="voice-wave-container" id="voice-wave-container">
+                        <canvas id="voice-wave-canvas"></canvas>
+                        <div class="voice-circle-visualizer">
+                            <div class="circle-ring ring-1"></div>
+                            <div class="circle-ring ring-2"></div>
+                            <div class="circle-ring ring-3"></div>
+                            <div class="circle-center">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 1C10.34 1 9 2.34 9 4V12C9 13.66 10.34 15 12 15C13.66 15 15 13.66 15 12V4C15 2.34 13.66 1 12 1Z" fill="currentColor"/>
+                                    <path d="M17 12C17 14.76 14.76 17 12 17C9.24 17 7 14.76 7 12H5C5 15.53 7.61 18.47 11 18.93V23H13V18.93C16.39 18.47 19 15.53 19 12H17Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="voice-status">
                     <div class="voice-status-icon">
                         <div class="voice-recording-dot"></div>
                     </div>
-                    <div class="voice-status-text">Говорите...</div>
+                    <div class="voice-status-text">Kronik слушает...</div>
                 </div>
-                <div class="voice-transcription"></div>
+                
+                
                 <button class="voice-cancel-button">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                         <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -92,6 +112,314 @@ class VoiceInterface {
         
         // Set canvas size
         this.resizeCanvas();
+        
+        // Add styles
+        this.addStyles();
+    }
+    
+    addStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .voice-chat-button {
+                position: relative;
+                overflow: hidden;
+            }
+            
+            @keyframes pulse {
+                0% {
+                    transform: translate(-50%, -50%) scale(0);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translate(-50%, -50%) scale(2);
+                    opacity: 0;
+                }
+            }
+            
+            .voice-overlay {
+                background: rgba(0, 0, 0, 0.95);
+                backdrop-filter: blur(20px);
+            }
+            
+            .voice-logo-container {
+                position: absolute;
+                top: 40px;
+                left: 50%;
+                transform: translateX(-50%);
+                text-align: center;
+                opacity: 0;
+                animation: fadeInDown 0.6s ease-out forwards;
+            }
+            
+            .kronik-logo-large {
+                font-size: 48px;
+                font-weight: 800;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                text-fill-color: transparent;
+                margin-bottom: 8px;
+                text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+            }
+            
+            .kronik-subtitle {
+                font-size: 20px;
+                font-weight: 500;
+                color: #9ca3af;
+                letter-spacing: 5px;
+            }
+            
+            .voice-visualizer-container {
+                position: relative;
+                width: 100%;
+                height: 200px;
+                margin: 120px 0 40px;
+            }
+            
+            .voice-circle-visualizer {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 150px;
+                height: 150px;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            
+            .voice-circle-visualizer.active {
+                opacity: 1;
+            }
+            
+            .circle-ring {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                border-radius: 50%;
+                border: 2px solid;
+                opacity: 0.3;
+            }
+            
+            .circle-ring.ring-1 {
+                width: 100%;
+                height: 100%;
+                border-color: #667eea;
+                transform: translate(-50%, -50%);
+                animation: ringPulse 2s infinite;
+            }
+            
+            .circle-ring.ring-2 {
+                width: 120%;
+                height: 120%;
+                border-color: #764ba2;
+                transform: translate(-50%, -50%);
+                animation: ringPulse 2s infinite 0.5s;
+            }
+            
+            .circle-ring.ring-3 {
+                width: 140%;
+                height: 140%;
+                border-color: #667eea;
+                transform: translate(-50%, -50%);
+                animation: ringPulse 2s infinite 1s;
+            }
+            
+            @keyframes ringPulse {
+                0% {
+                    transform: translate(-50%, -50%) scale(1);
+                    opacity: 0.3;
+                }
+                50% {
+                    transform: translate(-50%, -50%) scale(1.1);
+                    opacity: 0.6;
+                }
+                100% {
+                    transform: translate(-50%, -50%) scale(1);
+                    opacity: 0.3;
+                }
+            }
+            
+            .circle-center {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 80px;
+                height: 80px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0 40px rgba(102, 126, 234, 0.6);
+            }
+            
+            .circle-center svg {
+                color: white;
+                filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+            }
+            
+            .voice-wave-container {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            
+            .voice-wave-container.active {
+                opacity: 1;
+            }
+            
+            .voice-wave-container.active ~ .voice-circle-visualizer {
+                opacity: 0;
+            }
+            
+            .voice-status {
+                margin-bottom: 200px;
+                opacity: 0;
+                animation: fadeIn 0.6s ease-out 0.3s forwards;
+            }
+            
+            .voice-status-text {
+                font-size: 30px;
+                font-weight: 500;
+                background: linear-gradient(135deg,rgb(55, 50, 141) 0%,rgb(56, 127, 174) 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                text-fill-color: transparent;
+            }
+            
+            .voice-recording-dot {
+                width: 30px;
+                height: 30px;
+                background: #ef4444;
+                border-radius: 50%;
+                margin-right: 12px;
+                box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+                transition: all 0.3s ease;
+            }
+            
+            .voice-recording-dot.recording {
+                animation: recordPulse 1s infinite;
+            }
+            
+            .voice-recording-dot.processing {
+                background: linear-gradient(135deg,rgb(49, 68, 152) 0%,rgb(60, 134, 171) 100%);
+                box-shadow: 0 0 20px rgba(55, 72, 151, 0.8);
+                animation: processingRotate 1s linear infinite;
+            }
+            
+            @keyframes recordPulse {
+                0%, 100% {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+                50% {
+                    transform: scale(1.2);
+                    opacity: 0.8;
+                }
+            }
+            
+            @keyframes processingRotate {
+                0% {
+                    transform: rotate(0deg);
+                }
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+            
+            .processing-bar {
+                width: 100%;
+                height: 4px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 2px;
+                overflow: hidden;
+                position: relative;
+            }
+            
+            .processing-bar::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, #667eea, #764ba2, transparent);
+                animation: processingSlide 1.5s infinite;
+            }
+            
+            @keyframes processingSlide {
+                0% {
+                    left: -100%;
+                }
+                100% {
+                    left: 100%;
+                }
+            }
+            
+            .processing-particles {
+                position: absolute;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                gap: 10px;
+            }
+            
+            .processing-particles span {
+                width: 8px;
+                height: 8px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 50%;
+                animation: particleBounce 1.4s infinite ease-in-out both;
+            }
+            
+            .processing-particles span:nth-child(1) { animation-delay: -0.32s; }
+            .processing-particles span:nth-child(2) { animation-delay: -0.16s; }
+            .processing-particles span:nth-child(3) { animation-delay: 0s; }
+            .processing-particles span:nth-child(4) { animation-delay: 0.16s; }
+            .processing-particles span:nth-child(5) { animation-delay: 0.32s; }
+            
+            @keyframes particleBounce {
+                0%, 80%, 100% {
+                    transform: scale(0);
+                    opacity: 0.5;
+                }
+                40% {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            @keyframes fadeInDown {
+                from {
+                    opacity: 0;
+                    transform: translate(-50%, -20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translate(-50%, 0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
     }
     
     bindEvents() {
@@ -288,7 +616,6 @@ class VoiceInterface {
             
             if (data.success) {
                 // Show transcription
-                this.showTranscription(data.transcription);
                 
                 // Add messages to chat
                 this.addMessageToChat(data.transcription, true);
@@ -307,7 +634,7 @@ class VoiceInterface {
             
         } catch (error) {
             console.error('Error processing recording:', error);
-            this.showError('Ошибка обработки записи');
+            this.showError('Я ничего не услышал 🐰');
             setTimeout(() => {
                 this.hideOverlay();
             }, 2000);
@@ -411,11 +738,15 @@ class VoiceInterface {
             
             this.analyser.getByteFrequencyData(dataArray);
             
-            // Clear canvas
-            this.waveContext.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            // Clear canvas with gradient background
+            const gradient = this.waveContext.createLinearGradient(0, 0, this.waveCanvas.width, 0);
+            gradient.addColorStop(0, 'rgba(102, 126, 234, 0.1)');
+            gradient.addColorStop(0.5, 'rgba(118, 75, 162, 0.1)');
+            gradient.addColorStop(1, 'rgba(102, 126, 234, 0.1)');
+            this.waveContext.fillStyle = gradient;
             this.waveContext.fillRect(0, 0, this.waveCanvas.width, this.waveCanvas.height);
             
-            // Draw frequency bars
+            // Draw frequency bars with glow effect
             const barWidth = (this.waveCanvas.width / bufferLength) * 2.5;
             let barHeight;
             let x = 0;
@@ -423,19 +754,32 @@ class VoiceInterface {
             for (let i = 0; i < bufferLength; i++) {
                 barHeight = (dataArray[i] / 255) * this.waveCanvas.height * 0.8;
                 
-                // Gradient color based on frequency
-                const hue = (i / bufferLength) * 120 + 200; // Blue to purple
-                this.waveContext.fillStyle = `hsla(${hue}, 70%, 50%, 0.8)`;
+                // Gradient color based on frequency and amplitude
+                const hue = (i / bufferLength) * 60 + 250; // Purple to blue
+                const lightness = 50 + (dataArray[i] / 255) * 20;
                 
+                // Add glow effect
+                this.waveContext.shadowBlur = 20;
+                this.waveContext.shadowColor = `hsl(${hue}, 70%, ${lightness}%)`;
+                
+                // Draw bar
+                const barGradient = this.waveContext.createLinearGradient(x, this.waveCanvas.height, x, this.waveCanvas.height - barHeight);
+                barGradient.addColorStop(0, `hsla(${hue}, 70%, ${lightness}%, 0.8)`);
+                barGradient.addColorStop(1, `hsla(${hue}, 70%, ${lightness}%, 0.2)`);
+                
+                this.waveContext.fillStyle = barGradient;
                 this.waveContext.fillRect(
                     x,
                     (this.waveCanvas.height - barHeight) / 2,
-                    barWidth,
+                    barWidth - 2,
                     barHeight
                 );
                 
                 x += barWidth + 1;
             }
+            
+            // Reset shadow
+            this.waveContext.shadowBlur = 0;
         };
         
         draw();
@@ -489,12 +833,6 @@ class VoiceInterface {
         
         setTimeout(() => {
             this.voiceOverlay.classList.remove('active');
-            
-            // Clear transcription
-            const transcriptionEl = this.voiceOverlay.querySelector('.voice-transcription');
-            if (transcriptionEl) {
-                transcriptionEl.textContent = '';
-            }
         }, 300);
     }
     
@@ -504,26 +842,19 @@ class VoiceInterface {
         
         switch (status) {
             case 'recording':
-                statusText.textContent = 'Говорите...';
+                statusText.textContent = 'Kronik слушает...';
                 statusIcon.classList.add('recording');
+                statusIcon.classList.remove('processing');
                 break;
             case 'processing':
-                statusText.textContent = 'Обработка...';
+                statusText.textContent = 'Kronik обрабатывает...';
                 statusIcon.classList.remove('recording');
                 statusIcon.classList.add('processing');
                 break;
             case 'playing':
-                statusText.textContent = 'Воспроизведение ответа...';
+                statusText.textContent = 'Kronik отвечает...';
                 statusIcon.classList.remove('recording', 'processing');
                 break;
-        }
-    }
-    
-    showTranscription(text) {
-        const transcriptionEl = this.voiceOverlay.querySelector('.voice-transcription');
-        if (transcriptionEl) {
-            transcriptionEl.textContent = text;
-            transcriptionEl.classList.add('show');
         }
     }
     
