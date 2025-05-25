@@ -1381,3 +1381,406 @@ def upload_video_with_quality_processing(user_id, video_file_path, title=None, d
         logger.info(f"Quality processing skipped for video {video_id} as requested")
     
     return video_id
+
+def upload_material(user_id, material_file_path, title, description, material_type, category_id=None):
+    """
+    Upload a material file to S3 storage and create corresponding metadata
+    
+    Parameters:
+    - user_id: User ID or username (with @ prefix)
+    - material_file_path: Path to the material file on the local computer
+    - title: Material title
+    - description: Material description
+    - material_type: Type of material (book, pdf, etc.)
+    - category_id: Category ID (optional)
+    
+    Returns:
+    - material_id: Material ID if successful, None otherwise
+    """
+    bucket = get_bucket()
+    if not bucket:
+        logger.error(f"Could not get bucket for material upload")
+        return None
+    
+    client = bucket['client']
+    bucket_name = bucket['name']
+    
+    # Create folder structure if it doesn't exist
+    try:
+        folder_types = ["materials", "material_previews", "material_metadata"]
+        
+        for folder_type in folder_types:
+            folder_path = f"{user_id}/{folder_type}/"
+            marker_key = f"{folder_path}.keep"
+            
+            try:
+                client.head_object(Bucket=bucket_name, Key=marker_key)
+            except:
+                # If marker doesn't exist, create it
+                client.put_object(
+                    Bucket=bucket_name,
+                    Key=marker_key,
+                    Body=''
+                )
+                logger.info(f"Created missing folder {folder_path}")
+    except Exception as e:
+        logger.error(f"Error checking/creating folders for material upload: {e}")
+    
+    # Generate material ID
+    material_id = str(uuid.uuid4())
+    
+    # Get filename and extension
+    file_name = os.path.basename(material_file_path)
+    file_extension = os.path.splitext(file_name)[1].lower()
+    
+    # Form paths for storage
+    material_path = f"{user_id}/materials/{material_id}{file_extension}"
+    metadata_path = f"{user_id}/material_metadata/{material_id}.json"
+    
+    try:
+        # Get file size and MIME type
+        file_size = os.path.getsize(material_file_path)
+        mime_type = mimetypes.guess_type(material_file_path)[0] or 'application/octet-stream'
+        
+        # Upload material file
+        with open(material_file_path, 'rb') as file_data:
+            client.put_object(
+                Bucket=bucket_name,
+                Key=material_path,
+                Body=file_data,
+                ContentType=mime_type
+            )
+        
+        # Create metadata
+        metadata = {
+            "material_id": material_id,
+            "user_id": user_id,
+            "title": title,
+            "description": description,
+            "upload_date": datetime.now().isoformat(),
+            "file_path": material_path,
+            "file_name": file_name,
+            "file_size": file_size,
+            "mime_type": mime_type,
+            "material_type": material_type,
+            "category_id": category_id,
+            "download_count": 0,
+            "view_count": 0,
+            "rating_sum": 0,
+            "rating_count": 0,
+            "status": "published"
+        }
+        
+        # Save metadata
+        client.put_object(
+            Bucket=bucket_name,
+            Key=metadata_path,
+            Body=json.dumps(metadata, indent=2),
+            ContentType='application/json'
+        )
+        
+        logger.info(f"Material {material_id} successfully uploaded")
+        return material_id
+    
+    except Exception as e:
+        logger.error(f"Error uploading material: {e}")
+        return None
+
+def get_material_metadata(user_id, material_id):
+    """Get material metadata from S3"""
+    bucket = get_bucket()
+    if not bucket:
+        logger.error(f"Could not get bucket for retrieving material metadata")
+        return None
+        
+    client = bucket['client']
+    bucket_name = bucket['name']
+    metadata_path = f"{user_id}/material_metadata/{material_id}.json"
+    
+    try:
+        response = client.get_object(Bucket=bucket_name, Key=metadata_path)
+        return json.loads(response['Body'].read().decode('utf-8'))
+    except Exception as e:
+        logger.warning(f"Metadata for material {material_id} not found: {e}")
+        return None
+
+def list_user_materials(user_id, bucket=None):
+    """List all materials for a user"""
+    if not bucket:
+        bucket = get_bucket()
+        if not bucket:
+            logger.error(f"Could not get bucket for listing materials")
+            return []
+    
+    client = bucket['client']
+    bucket_name = bucket['name']
+    metadata_prefix = f"{user_id}/material_metadata/"
+    
+    materials_list = []
+    
+    try:
+        # List objects with the metadata prefix
+        paginator = client.get_paginator('list_objects_v2')
+        pages = paginator.paginate(Bucket=bucket_name, Prefix=metadata_prefix)
+        
+        for page in pages:
+            for obj in page.get('Contents', []):
+                if obj['Key'].endswith('.json'):
+                    try:
+                        response = client.get_object(Bucket=bucket_name, Key=obj['Key'])
+                        metadata = json.loads(response['Body'].read().decode('utf-8'))
+                        materials_list.append(metadata)
+                    except Exception as e:
+                        logger.error(f"Error loading metadata from {obj['Key']}: {e}")
+        
+        # Sort by upload date (newest first)
+        materials_list.sort(key=lambda x: x.get('upload_date', ''), reverse=True)
+        
+        return materials_list
+    
+    except Exception as e:
+        logger.error(f"Error getting materials list: {e}")
+        return []
+
+def generate_material_download_url(user_id, material_id, expiration_time=3600):
+    """Generate a temporary download URL for a material"""
+    metadata = get_material_metadata(user_id, material_id)
+    
+    if not metadata or "file_path" not in metadata:
+        logger.error(f"Could not find information about material {material_id}")
+        return None
+    
+    bucket = get_bucket()
+    if not bucket:
+        logger.error(f"Could not get bucket for generating download URL")
+        return None
+        
+    client = bucket['client']
+    bucket_name = bucket['name']
+    
+    # Check if object exists
+    try:
+        client.head_object(Bucket=bucket_name, Key=metadata["file_path"])
+    except Exception:
+        logger.error(f"Material file not found in storage at path: {metadata['file_path']}")
+        return None
+    
+    try:
+        # Generate presigned URL for download
+        url = client.generate_presigned_url(
+            'get_object',
+            Params={
+                'Bucket': bucket_name,
+                'Key': metadata["file_path"],
+                'ResponseContentDisposition': f'attachment; filename="{metadata["file_name"]}"'
+            },
+            ExpiresIn=expiration_time
+        )
+        
+        logger.info(f"Generated download URL for material (valid for {expiration_time} seconds)")
+        return url
+    
+    except Exception as e:
+        logger.error(f"Error generating download URL: {e}")
+        return None
+
+def delete_material(user_id, material_id):
+    """Delete a material and all related files"""
+    bucket = get_bucket()
+    if not bucket:
+        logger.error(f"Could not get bucket for deleting material")
+        return False
+    
+    client = bucket['client']
+    bucket_name = bucket['name']
+    
+    # Get metadata to determine file paths
+    metadata = get_material_metadata(user_id, material_id)
+    
+    if not metadata:
+        logger.error(f"Metadata for material {material_id} not found, cannot delete")
+        return False
+    
+    try:
+        # Delete material file
+        if "file_path" in metadata:
+            try:
+                client.head_object(Bucket=bucket_name, Key=metadata["file_path"])
+                client.delete_object(Bucket=bucket_name, Key=metadata["file_path"])
+                logger.info(f"Material file {material_id} deleted")
+            except Exception as e:
+                logger.warning(f"Material file not found for deletion: {e}")
+        
+        # Delete preview image if exists
+        if "preview_image_path" in metadata:
+            try:
+                client.head_object(Bucket=bucket_name, Key=metadata["preview_image_path"])
+                client.delete_object(Bucket=bucket_name, Key=metadata["preview_image_path"])
+                logger.info(f"Preview image for material {material_id} deleted")
+            except Exception as e:
+                logger.warning(f"Preview image not found for deletion: {e}")
+        
+        # Delete metadata
+        metadata_path = f"{user_id}/material_metadata/{material_id}.json"
+        try:
+            client.head_object(Bucket=bucket_name, Key=metadata_path)
+            client.delete_object(Bucket=bucket_name, Key=metadata_path)
+            logger.info(f"Metadata for material {material_id} deleted")
+        except Exception as e:
+            logger.warning(f"Metadata file not found for deletion: {e}")
+        
+        logger.info(f"Material {material_id} and all related files successfully deleted")
+        return True
+    
+    except Exception as e:
+        logger.error(f"Error deleting material: {e}")
+        return False
+
+def upload_material_preview(user_id, material_id, preview_file_path):
+    """Upload a preview image for a material"""
+    bucket = get_bucket()
+    if not bucket:
+        logger.error(f"Could not get bucket for preview upload")
+        return False
+    
+    client = bucket['client']
+    bucket_name = bucket['name']
+    
+    file_extension = os.path.splitext(preview_file_path)[1]
+    preview_path = f"{user_id}/material_previews/{material_id}{file_extension}"
+    
+    try:
+        # Determine MIME type
+        mime_type = mimetypes.guess_type(preview_file_path)[0] or 'image/jpeg'
+        
+        logger.info(f"Uploading preview for material {material_id} from {preview_file_path} to {preview_path}")
+        
+        # Upload preview image
+        with open(preview_file_path, 'rb') as file_data:
+            client.put_object(
+                Bucket=bucket_name,
+                Key=preview_path,
+                Body=file_data,
+                ContentType=mime_type
+            )
+        
+        # Update metadata with preview information
+        metadata_path = f"{user_id}/material_metadata/{material_id}.json"
+        
+        try:
+            response = client.get_object(Bucket=bucket_name, Key=metadata_path)
+            metadata_content = json.loads(response['Body'].read().decode('utf-8'))
+            
+            metadata_content["preview_image_path"] = preview_path
+            metadata_content["preview_mime_type"] = mime_type
+            
+            client.put_object(
+                Bucket=bucket_name,
+                Key=metadata_path,
+                Body=json.dumps(metadata_content, indent=2),
+                ContentType='application/json'
+            )
+            logger.info(f"Updated metadata with preview path: {preview_path}")
+        except Exception as e:
+            logger.error(f"Metadata not found for material {material_id}: {e}")
+        
+        logger.info(f"Preview for material {material_id} successfully uploaded")
+        return True
+    
+    except Exception as e:
+        logger.error(f"Error uploading preview: {e}")
+        return False
+
+def get_all_materials_metadata():
+    """Get metadata for all materials across all users"""
+    bucket = get_bucket()
+    if not bucket:
+        logger.error("Could not get bucket for getting all materials")
+        return []
+        
+    client = bucket['client']
+    bucket_name = bucket['name']
+    
+    all_materials = []
+    
+    try:
+        # Get list of users (top-level folders)
+        users = set()
+        result = client.list_objects_v2(Bucket=bucket_name, Delimiter='/')
+        
+        # Get all prefixes (folders)
+        for prefix in result.get('CommonPrefixes', []):
+            user_id = prefix.get('Prefix', '').rstrip('/')
+            if user_id and user_id.startswith('@'):
+                users.add(user_id)
+        
+        logger.info(f"Found {len(users)} users to check for materials")
+        
+        # For each user, collect material metadata
+        for user_id in users:
+            try:
+                # Look for material metadata
+                metadata_prefix = f"{user_id}/material_metadata/"
+                
+                # List objects with the metadata prefix
+                paginator = client.get_paginator('list_objects_v2')
+                pages = paginator.paginate(Bucket=bucket_name, Prefix=metadata_prefix)
+                
+                metadata_objects = []
+                for page in pages:
+                    if 'Contents' in page:
+                        metadata_objects.extend(page['Contents'])
+                
+                # Process all metadata files for the user
+                for obj in metadata_objects:
+                    if obj['Key'].endswith('.json'):
+                        try:
+                            response = client.get_object(Bucket=bucket_name, Key=obj['Key'])
+                            metadata = json.loads(response['Body'].read().decode('utf-8'))
+                            
+                            # Add user information
+                            metadata['user_id'] = user_id
+                            
+                            all_materials.append(metadata)
+                        except Exception as e:
+                            logger.error(f"Error processing metadata for {obj['Key']}: {e}")
+            except Exception as e:
+                logger.error(f"Error processing user {user_id}: {e}")
+        
+        # Sort by upload date (newest first)
+        all_materials.sort(key=lambda x: x.get('upload_date', ''), reverse=True)
+        
+        return all_materials
+    
+    except Exception as e:
+        logger.error(f"Error getting all materials metadata: {e}")
+        return []
+
+def update_material_metadata(user_id, material_id, metadata):
+    """Update metadata JSON file in S3 for materials"""
+    try:
+        bucket = get_bucket()
+        if not bucket:
+            return False
+            
+        client = bucket['client']
+        bucket_name = bucket['name']
+        metadata_path = f"{user_id}/material_metadata/{material_id}.json"
+        
+        # Check if object exists
+        try:
+            client.head_object(Bucket=bucket_name, Key=metadata_path)
+        except Exception:
+            return False
+            
+        # Upload updated metadata
+        client.put_object(
+            Bucket=bucket_name,
+            Key=metadata_path,
+            Body=json.dumps(metadata, indent=2),
+            ContentType='application/json'
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Error updating material metadata for {user_id}/{material_id}: {e}")
+        return False

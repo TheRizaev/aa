@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
+import os
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -392,3 +393,174 @@ class ChatMessage(models.Model):
     def __str__(self):
         content_preview = self.content[:50] + "..." if len(self.content) > 50 else self.content
         return f"{self.message_type}: {content_preview}"
+    
+
+class MaterialCategory(models.Model):
+    """Категории материалов"""
+    name = models.CharField(max_length=100)
+    icon = models.CharField(max_length=50, default='📚')  # Эмодзи иконка
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Material Category'
+        verbose_name_plural = 'Material Categories'
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+
+class Material(models.Model):
+    """Учебные материалы (книги, PDF, документы и т.д.)"""
+    
+    MATERIAL_TYPES = [
+        ('book', '📚 Книга'),
+        ('pdf', '📄 PDF документ'),
+        ('presentation', '📊 Презентация'),
+        ('document', '📝 Документ'),
+        ('archive', '📦 Архив'),
+        ('spreadsheet', '📈 Таблица'),
+        ('image', '🖼️ Изображение'),
+        ('audio', '🎵 Аудио'),
+        ('other', '📎 Другое'),
+    ]
+    
+    DIFFICULTY_LEVELS = [
+        ('beginner', '🌱 Начальный'),
+        ('intermediate', '🌿 Средний'),
+        ('advanced', '🌳 Продвинутый'),
+        ('expert', '🏆 Экспертный'),
+    ]
+    
+    # Основная информация
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=200, verbose_name='Название')
+    description = models.TextField(verbose_name='Описание')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='materials')
+    
+    # Файл и метаданные
+    file_path = models.CharField(max_length=500)  # Путь в S3
+    file_name = models.CharField(max_length=255)  # Оригинальное имя файла
+    file_size = models.BigIntegerField()  # Размер в байтах
+    file_type = models.CharField(max_length=20, choices=MATERIAL_TYPES)
+    mime_type = models.CharField(max_length=100)
+    
+    # Классификация
+    category = models.ForeignKey(MaterialCategory, on_delete=models.SET_NULL, null=True, blank=True)
+    difficulty_level = models.CharField(max_length=20, choices=DIFFICULTY_LEVELS, default='beginner')
+    tags = models.CharField(max_length=500, blank=True, help_text='Теги через запятую')
+    
+    # Статистика
+    download_count = models.PositiveIntegerField(default=0)
+    view_count = models.PositiveIntegerField(default=0)
+    rating_sum = models.PositiveIntegerField(default=0)
+    rating_count = models.PositiveIntegerField(default=0)
+    
+    # Настройки доступа
+    is_public = models.BooleanField(default=True)
+    is_premium = models.BooleanField(default=False)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    
+    # Временные метки
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # SEO и превью
+    preview_image_path = models.CharField(max_length=500, blank=True)  # Путь к превью изображению
+    excerpt = models.CharField(max_length=300, blank=True)  # Краткое описание
+    
+    class Meta:
+        verbose_name = 'Material'
+        verbose_name_plural = 'Materials'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['author', '-created_at']),
+            models.Index(fields=['category', '-created_at']),
+            models.Index(fields=['file_type', '-created_at']),
+            models.Index(fields=['-download_count']),
+        ]
+    
+    def __str__(self):
+        return self.title
+    
+    @property
+    def average_rating(self):
+        """Средний рейтинг материала"""
+        if self.rating_count == 0:
+            return 0
+        return round(self.rating_sum / self.rating_count, 1)
+    
+    @property
+    def formatted_file_size(self):
+        """Отформатированный размер файла"""
+        size = self.file_size
+        for unit in ['Б', 'КБ', 'МБ', 'ГБ']:
+            if size < 1024.0:
+                return f"{size:.1f} {unit}"
+            size /= 1024.0
+        return f"{size:.1f} ТБ"
+    
+    @property
+    def file_extension(self):
+        """Расширение файла"""
+        return os.path.splitext(self.file_name)[1].lower()
+    
+    def get_absolute_url(self):
+        return reverse('material_detail', kwargs={'pk': self.pk})
+
+class MaterialDownload(models.Model):
+    """История скачиваний материалов"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='material_downloads')
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, related_name='downloads')
+    downloaded_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    
+    class Meta:
+        verbose_name = 'Material Download'
+        verbose_name_plural = 'Material Downloads'
+        ordering = ['-downloaded_at']
+        unique_together = ('user', 'material')  # Каждый пользователь может скачать материал только один раз
+    
+    def __str__(self):
+        return f"{self.user.username} downloaded {self.material.title}"
+
+class MaterialRating(models.Model):
+    """Рейтинги материалов"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, related_name='ratings')
+    rating = models.PositiveSmallIntegerField(choices=[(i, i) for i in range(1, 6)])  # 1-5 звезд
+    review = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('user', 'material')
+        verbose_name = 'Material Rating'
+        verbose_name_plural = 'Material Ratings'
+    
+    def __str__(self):
+        return f"{self.user.username} rated {self.material.title}: {self.rating}/5"
+
+class MaterialCollection(models.Model):
+    """Коллекции материалов (папки пользователя)"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='material_collections')
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    materials = models.ManyToManyField(Material, blank=True)
+    is_public = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Material Collection'
+        verbose_name_plural = 'Material Collections'
+        ordering = ['-updated_at']
+        unique_together = ('user', 'name')
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.name}"
+    
+    @property
+    def materials_count(self):
+        return self.materials.count()

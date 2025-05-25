@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import gcs_views 
 from . import ai_views
+from . import material_views
 from .voice_assistant import voice_chat, start_voice_recognition, synthesize_text
 from django.conf import settings
 
@@ -66,6 +67,17 @@ urlpatterns = [
     path('api/voice-chat/', voice_chat, name='voice_chat'),
     path('api/start-voice-recognition/', start_voice_recognition, name='start_voice_recognition'),
     path('api/synthesize-text/', synthesize_text, name='synthesize_text'),
+    
+    path('library/', material_views.library_view, name='library'),
+    path('library/my-materials/', material_views.my_materials_view, name='my_materials'),
+    path('library/material/<str:material_id>/', material_views.material_detail_view, name='material_detail'),
+    
+    # Material API URLs
+    path('api/upload-material/', material_views.upload_material_view, name='upload_material'),
+    path('api/list-user-materials/', material_views.list_user_materials_api, name='list_user_materials_api'),
+    path('api/list-user-materials/<str:username>/', material_views.list_user_materials_api, name='list_user_materials_api_user'),
+    path('api/download-material/<str:material_id>/', material_views.download_material, name='download_material'),
+    path('api/delete-material/<str:material_id>/', material_views.delete_material_view, name='delete_material'),
 ]
 
 if settings.DEBUG:
