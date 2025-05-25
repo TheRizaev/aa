@@ -80,13 +80,18 @@ class TTSService:
         Returns:
             AudioSegment object or None if synthesis failed
         """
+        MAX_TEXT_LENGTH = 2000
         if not text:
             logger.warning("Empty text for synthesis")
             return None
             
+        if len(text) > MAX_TEXT_LENGTH:
+            logger.warning(f"Text is too long for synthesis (length: {len(text)}). Truncating to {MAX_TEXT_LENGTH} characters.")
+            text = text[:MAX_TEXT_LENGTH]
+        
         if not self.api_key:
             raise ValueError("API key is not set")
-            
+    
         request = self._create_synthesis_request(text, voice, role, speed)
         logger.info(f"Synthesizing text: {text[:50]}{'...' if len(text) > 50 else ''}")
         

@@ -133,8 +133,25 @@ class AIChatView(View, AICreateMixin):
             if not message:
                 return JsonResponse({'error': 'Сообщение не может быть пустым'}, status=400)
             
-            # Получаем контекст с историей чата (последние 10 сообщений)
-            messages = self.get_chat_history_context(request.user, message, context_limit=10)
+            # Используем синхронную версию для получения контекста
+            from .models import ChatHistory
+            messages = [{"role": "system", "content": self.get_system_prompt()}]
+            
+            # Получаем контекст пользователя синхронно
+            if hasattr(request.user, 'profile'):
+                profile = request.user.profile
+                context_parts = []
+                if profile.display_name:
+                    context_parts.append(f"Имя: {profile.display_name}")
+                if profile.is_author:
+                    context_parts.append("Статус: Автор на платформе")
+                if context_parts:
+                    messages.append({"role": "system", "content": f"Контекст пользователя: {'; '.join(context_parts)}"})
+            
+            # Получаем историю синхронно
+            recent_messages = ChatHistory.get_context_for_ai(request.user, 10)
+            messages.extend(recent_messages)
+            messages.append({"role": "user", "content": message})
             
             # Создаем streaming response
             response = StreamingHttpResponse(
@@ -180,7 +197,7 @@ class AIChatView(View, AICreateMixin):
                 # Сохраняем в историю после завершения
                 response_time = time.time() - start_time
                 self.save_to_history(user, original_message, full_response, 
-                                   model_used="gpt-3.5-turbo", response_time=response_time)
+                                   model_used="gpt-3.5-turbo", response_time=response_time, is_voice=True)
                 
                 # Сигнализируем об окончании
                 yield f"data: {json.dumps({'done': True})}\n\n"
@@ -207,7 +224,7 @@ class AIChatView(View, AICreateMixin):
             yield f"data: {json.dumps({'content': error_message})}\n\n"
             yield f"data: {json.dumps({'done': True})}\n\n"
     
-    async def save_to_history(self, user, message, response, model_used=None, response_time=None):
+    async def save_to_history(self, user, message, response, model_used=None, response_time=None, is_voice=False):
         """Сохраняет сообщение и ответ в историю с ограничением до 100 сообщений"""
         try:
             from .models import ChatHistory
@@ -219,7 +236,8 @@ class AIChatView(View, AICreateMixin):
                     message=message,
                     response=response,
                     model_used=model_used or 'gpt-3.5-turbo',
-                    response_time=response_time
+                    response_time=response_time,
+                    is_voice=is_voice
                 )
 
                 # Очищаем старые сообщения (оставляем последние 100)
@@ -231,7 +249,7 @@ class AIChatView(View, AICreateMixin):
 
 @login_required
 @csrf_exempt
-@require_http_methods(["POST"])"
+@require_http_methods(["POST"])
 async def ai_chat_simple(request):
     """Простая версия AI чата без streaming с сохранением истории"""
     try:
@@ -243,6 +261,22 @@ async def ai_chat_simple(request):
             }, status=503)
         
         data = json.loads(request.body)
+        if data.success:
+            is_voice = data.get('is_voice', False)
+            if is_voice:
+                return JsonResponse({
+                    'success': True,
+                    'input_type': 'voice',
+                    'response': data.response,
+                    'audio_base64': data.audio_base64
+                })
+            else:
+                return JsonResponse({
+                    'success': True,
+                    'input_type': 'text',
+                    'response': data.response
+                })
+                
         message = data.get('message', '').strip()
         
         if not message:
@@ -252,7 +286,7 @@ async def ai_chat_simple(request):
         ai_mixin = AICreateMixin()
         
         # Получаем контекст с историей (последние 10 сообщений)
-        messages = await ai_mixin.get_chat_history_context(request.user, message, context_limit=10)
+        messages = await asyncio.ensure_future(ai_mixin.get_chat_history_context(request.user, message, context_limit=10))
         
         # Получаем ответ от OpenAI
         try:
@@ -260,7 +294,7 @@ async def ai_chat_simple(request):
             
             response = await asyncio.to_thread(
                 client.chat.completions.create,
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=messages,
                 max_tokens=1000,
                 temperature=0.7

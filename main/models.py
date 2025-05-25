@@ -248,6 +248,7 @@ class ChatHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_history')
     message = models.TextField()
     response = models.TextField()
+    is_voice = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     
     # Метаданные

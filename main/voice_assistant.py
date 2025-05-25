@@ -32,6 +32,29 @@ class VoiceAssistant:
         if self.tts_service:
             self.tts_service.close()
     
+    def truncate_text_for_tts(self, text, max_length=1000):
+        """Обрезаем текст для TTS с учетом ограничений Yandex"""
+        if len(text) <= max_length:
+            return text
+        
+        # Находим последнее предложение, которое помещается в лимит
+        truncated = text[:max_length]
+        last_sentence_end = max(
+            truncated.rfind('.'),
+            truncated.rfind('!'),
+            truncated.rfind('?')
+        )
+        
+        if last_sentence_end > 0:
+            return truncated[:last_sentence_end + 1]
+        
+        # Если не нашли конец предложения, обрезаем по последнему пробелу
+        last_space = truncated.rfind(' ')
+        if last_space > 0:
+            return truncated[:last_space] + '...'
+        
+        return truncated[:max_length-3] + '...'
+    
     async def process_voice_message(self, user, audio_data: bytes) -> dict:
         try:
             # 1. Speech to Text
@@ -47,12 +70,16 @@ class VoiceAssistant:
                     'error': 'Не удалось распознать речь'
                 }
             
-            # 2. Get AI response
-            messages = await self.ai_mixin.get_chat_history_context(user, transcription)
-            ai_response = await self._get_ai_response(messages)
+            # 2. Get AI response with shorter max_tokens for voice
+            # Используем sync_to_async для получения контекста
+            messages = await sync_to_async(self._get_chat_context_sync)(user, transcription)
+            ai_response = await self._get_ai_response(messages, max_tokens=150)  # Меньше токенов для голоса
             
-            # 3. Text to Speech
-            audio_segment = self.tts_service.synthesize(ai_response)
+            # 3. Truncate response for TTS if needed
+            truncated_response = self.truncate_text_for_tts(ai_response, max_length=800)
+            
+            # 4. Text to Speech
+            audio_segment = self.tts_service.synthesize(truncated_response)
             
             if not audio_segment:
                 return {
@@ -72,6 +99,7 @@ class VoiceAssistant:
                 'success': True,
                 'transcription': transcription,
                 'ai_response': ai_response,
+                'truncated_response': truncated_response if len(ai_response) > len(truncated_response) else None,
                 'audio_path': output_path
             }
             
@@ -82,7 +110,31 @@ class VoiceAssistant:
                 'error': str(e)
             }
     
-    async def _get_ai_response(self, messages):
+    def _get_chat_context_sync(self, user, message):
+        """Get chat context synchronously - для использования через sync_to_async"""
+        from .models import ChatHistory
+        
+        messages = [{"role": "system", "content": self.ai_mixin.get_system_prompt()}]
+        
+        # Add user context if available
+        if hasattr(user, 'profile'):
+            profile = user.profile
+            context_parts = []
+            if profile.display_name:
+                context_parts.append(f"Имя: {profile.display_name}")
+            if profile.is_author:
+                context_parts.append("Статус: Автор на платформе")
+            if context_parts:
+                messages.append({"role": "system", "content": f"Контекст пользователя: {'; '.join(context_parts)}"})
+        
+        # Get chat history - синхронно
+        recent_messages = ChatHistory.get_context_for_ai(user, 5)  # Меньше контекста для голоса
+        messages.extend(recent_messages)
+        messages.append({"role": "user", "content": message})
+        
+        return messages
+    
+    async def _get_ai_response(self, messages, max_tokens=150):
         """Get response from OpenAI"""
         try:
             from openai import OpenAI
@@ -92,7 +144,7 @@ class VoiceAssistant:
                 client.chat.completions.create,
                 model="gpt-3.5-turbo",
                 messages=messages,
-                max_tokens=200,  # Shorter for voice responses
+                max_tokens=max_tokens,  # Используем переданное значение
                 temperature=0.7
             )
             
@@ -148,7 +200,6 @@ async def voice_chat(request):
         
         # Save to chat history
         try:
-            from asgiref.sync import sync_to_async
             from .models import ChatHistory
             @sync_to_async
             def save_chat_history():
@@ -163,14 +214,20 @@ async def voice_chat(request):
         except Exception as e:
             logger.error(f"Error saving to chat history: {e}")
         
-        # Return multipart response with text and audio
-        return JsonResponse({
+        # Return response with note if text was truncated
+        response_data = {
             'success': True,
             'input_type': 'voice',
             'transcription': result['transcription'],
             'ai_response': result['ai_response'],
             'audio_base64': audio_content.hex()  # Convert to hex for JSON
-        })
+        }
+        
+        if result.get('truncated_response'):
+            response_data['truncated'] = True
+            response_data['truncated_response'] = result['truncated_response']
+        
+        return JsonResponse(response_data)
         
     except Exception as e:
         logger.error(f"Error in voice_chat: {e}")
@@ -243,7 +300,11 @@ def synthesize_text(request):
             }, status=400)
         
         assistant = get_voice_assistant()
-        audio_segment = assistant.tts_service.synthesize(text)
+        
+        # Truncate text if it's too long
+        truncated_text = assistant.truncate_text_for_tts(text, max_length=800)
+        
+        audio_segment = assistant.tts_service.synthesize(truncated_text)
         
         if not audio_segment:
             return JsonResponse({
@@ -263,10 +324,17 @@ def synthesize_text(request):
         # Clean up
         os.unlink(tmp_path)
         
-        return JsonResponse({
+        response_data = {
             'success': True,
             'audio_base64': audio_content.hex()
-        })
+        }
+        
+        if len(text) > len(truncated_text):
+            response_data['truncated'] = True
+            response_data['original_length'] = len(text)
+            response_data['truncated_length'] = len(truncated_text)
+        
+        return JsonResponse(response_data)
         
     except Exception as e:
         logger.error(f"Error synthesizing text: {e}")
