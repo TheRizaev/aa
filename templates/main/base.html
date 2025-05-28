@@ -19,6 +19,7 @@
     <!-- Add studio.css if we're on the studio page -->
     {% if request.path == '/studio/' %}
     <link rel="stylesheet" href="{% static 'css/studio.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     {% endif %}
     
     <!-- CSRF Token for AJAX requests -->
@@ -128,10 +129,6 @@
                             <div>Мои курсы</div>
                         </div>
                         <div class="dropdown-item">
-                            <div class="icon"><img src="/static/icons/books.svg" alt="Библиотека" width="24" height="24"></div>
-                            <div>Библиотека</div>
-                        </div>
-                        <div class="dropdown-item">
                             <div class="icon"><img src="/static/icons/progress.svg" alt="Прогресс" width="24" height="24"></div>
                             <div>Прогресс обучения</div>
                         </div>
@@ -166,10 +163,11 @@
                 <div class="menu-icon"><img src="/static/icons/courses.svg" alt="Courses" width="32" height="32"></div>
                 <div class="menu-text" data-translate="courses">Курсы</div>
             </div>
-            <div class="menu-item">
+            <div class="menu-item {% if '/library/' in request.path %}active{% endif %}" onclick="window.location.href='{% url 'library' %}'">
                 <div class="menu-icon"><img src="/static/icons/books.svg" alt="Library" width="32" height="32"></div>
                 <div class="menu-text" data-translate="library">Библиотека</div>
             </div>
+            {% if user.is_authenticated %}
             <div class="menu-item subscriptions-toggle" id="subscriptions-toggle">
                 <div class="menu-icon"><img src="/static/icons/tip.svg" alt="Подписки" width="24" height="24"></div>
                 <div class="menu-text">Подписки{% if subscription_count %} ({{ subscription_count }}){% endif %}</div>
@@ -180,7 +178,6 @@
                 <div class="subscription-loading">Загрузка подписок...</div>
             </div>
             
-            {% if user.is_authenticated %}
             <div class="menu-item {% if request.path == '/studio/' %}active{% endif %}" onclick="window.location.href='{% url 'studio' %}'">
                 <div class="menu-icon"><img src="/static/icons/camera.svg" alt="Dark mode" width="32" height="32"></div>
                 <div class="menu-text">Студия</div>

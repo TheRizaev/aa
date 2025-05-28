@@ -1,7 +1,7 @@
 {% extends 'main/base.html' %}
 {% load static %}
 {% load humanize %}
-
+{% load format_views %}
 {% block title %}{{ video.title }} - KRONIK{% endblock %}
 
 {% block content %}
@@ -16,7 +16,6 @@
                 
                 <div class="video-overlays">
                     <div class="top-controls">
-                        <div class="video-title">{{ video.title }}</div>
                         <div class="kronik-logo">
                             <div class="logo-icon">K</div>
                             <span>KRONIK</span>
@@ -144,7 +143,7 @@
         <div class="video-details">
             <h1>{{ video.title }}</h1>
             <div class="video-info-bar">
-                <div class="views-info">{{ video.views_formatted }} • {{ video.upload_date_formatted|default:video.age }}</div>
+                <div class="views-info">{{ video.views|format_views }} просмотров • {{ video.upload_date_formatted|default:video.age }}</div>
                 <div class="actions-bar">
                     <button class="action-button" id="likeButton">
                         <img src="{% static 'icons/like.svg' %}" alt="Like" width="20" height="20">
@@ -161,23 +160,35 @@
                 </div>
             </div>
             
-            <div class="channel-info">
-                <a href="/channel/{{ video.user_id }}/" class="avatar avatar-small">
-                    {% if video.avatar_url %}
-                        <img src="{{ video.avatar_url }}" alt="{{ video.display_name|default:video.channel }}" loading="lazy">
-                    {% else %}
-                        <span class="avatar-text">{{ video.display_name|first|default:video.channel|first }}</span>
-                    {% endif %}
+            <div class="author-section channel-info">
+                <a href="/channel/{{ video.user_id }}/" class="author-avatar-link avatar">
+                    <div class="author-avatar">
+                        {% if video.avatar_url %}
+                            <img src="{{ video.avatar_url }}" alt="{{ video.display_name|default:video.channel }}" loading="lazy">
+                        {% else %}
+                            <span class="avatar-initial">{{ video.display_name|first|default:video.channel|first }}</span>
+                        {% endif %}
+                    </div>
                 </a>
-                <div class="channel-details">
-                    <a href="{% url 'channel' username=video.user_id %}" class="channel-name">{{ video.display_name|default:video.channel }}</a>
-                    <div class="subscribers"><span id="subscriber-count">{{ video.subscribers|default:"0" }}</span> подписчиков</div>
+                
+                <div class="author-info">
+                    <a href="{% url 'channel' username=video.user_id %}" class="author-name">{{ video.display_name|default:video.channel }}</a>
+                    <div class="author-stats">
+                        <span class="subscriber-count"><span id="subscriber-count">{{ video.subscribers|default:"0" }}</span> подписчиков</span>
+                    </div>
                 </div>
-                {% if user.is_authenticated and user.username != video.user_id %}
-                <button class="subscribe-button" data-channel-id="{{ video.user_id }}">Подписаться</button>
-                {% elif not user.is_authenticated %}
-                <button class="subscribe-button" onclick="showLoginPrompt()">Подписаться</button>
-                {% endif %}
+                
+                <div class="author-actions">
+                    {% if user.is_authenticated and user.username != video.user_id %}
+                    <button class="subscribe-btn subscribe-button" data-channel-id="{{ video.user_id }}">
+                        <span class="subscribe-text">Подписаться</span>
+                    </button>
+                    {% elif not user.is_authenticated %}
+                    <button class="subscribe-btn subscribe-button" onclick="showLoginPrompt()">
+                        <span class="subscribe-text">Подписаться</span>
+                    </button>
+                    {% endif %}
+                </div>
             </div>
             
             <div class="video-description">
@@ -336,19 +347,6 @@
 
 <style>
 /* Common avatar styles */
-.avatar {
-    border-radius: 50%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--accent-color);
-    color: white;
-    font-weight: bold;
-    flex-shrink: 0;
-    text-decoration: none;
-    transition: transform 0.3s;
-}
 
 .avatar:hover {
     transform: scale(1.05);
@@ -413,16 +411,6 @@
 
 .action-button.active img {
     filter: brightness(0) invert(1);
-}
-
-/* Channel info styles */
-.channel-info {
-    display: flex;
-    align-items: center;
-    padding: 15px 0;
-    border-top: 1px solid rgba(37, 39, 159, 0.1);
-    border-bottom: 1px solid rgba(37, 39, 159, 0.1);
-    margin: 15px 0;
 }
 
 .channel-details {
@@ -619,6 +607,92 @@
 .cancel-unsubscribe-btn:hover {
     background-color: rgba(255, 255, 255, 0.1);
     transform: translateY(-3px);
+}
+
+.author-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.author-avatar-link {
+    text-decoration: none;
+}
+
+.author-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+.author-avatar:hover {
+    transform: scale(1.1);
+}
+
+.author-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-initial {
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.author-info {
+    flex: 1;
+}
+
+.author-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text-light);
+    text-decoration: none;
+    display: block;
+    margin-bottom: 0.25rem;
+    transition: color 0.3s ease;
+}
+
+.author-name:hover {
+    color: #667eea;
+}
+
+.author-stats {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+}
+
+.subscribe-btn {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 25px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.subscribe-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.subscribe-btn.subscribed {
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
 }
 </style>
 {% endblock %}

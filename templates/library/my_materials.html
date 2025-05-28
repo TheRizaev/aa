@@ -10,7 +10,7 @@
     <div class="my-materials-header">
         <div class="header-content">
             <h1 class="page-title">
-                <span class="title-icon">💾</span>
+                <span class="title-icon"><img src="{% static 'icons/floppy.svg' %}" alt="floppy" width="40" height="40"></span>
                 Мои материалы
             </h1>
             <p class="page-subtitle">Материалы, которые вы скачали из библиотеки KRONIK</p>
@@ -191,7 +191,6 @@
                 <h3>У вас пока нет скачанных материалов</h3>
                 <p>Начните изучать материалы из нашей библиотеки!</p>
                 <a href="{% url 'library' %}" class="btn btn-primary">
-                    <img src="{% static 'icons/book.svg' %}" alt="Библиотека" width="16" height="16">
                     Перейти в библиотеку
                 </a>
             </div>

@@ -1,0 +1,659 @@
+{% extends 'main/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ material.title }} - KRONIK{% endblock %}
+
+{% block content %}
+<div class="material-detail-container">
+    <!-- Material Header -->
+    <div class="material-header">
+        <div class="material-preview-large">
+            <div class="material-type-icon-large">
+                {% for type_key, type_label in material_types_dict.items %}
+                    {% if type_key == material.material_type %}
+                        {{ type_label|slice:":2" }}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <div class="material-badges">
+                <div class="material-type-badge">{{ material_types_dict|default_if_none:"📎 Файл"|default:"📎 Файл" }}</div>
+                {% if material.formatted_file_size %}
+                    <div class="material-size-badge">{{ material.formatted_file_size }}</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="material-info">
+            <h1 class="material-title">{{ material.title }}</h1>
+            
+            <div class="material-author-section">
+                <div class="author-avatar">
+                    {% if material.author_avatar_url %}
+                        <img src="{{ material.author_avatar_url }}" alt="{{ material.author_display_name }}">
+                    {% else %}
+                        <span class="avatar-text">{{ material.author_display_name|first }}</span>
+                    {% endif %}
+                </div>
+                <div class="author-info">
+                    <a href="/channel/{{ material.user_id }}/" class="author-name">{{ material.author_display_name }}</a>
+                    <div class="material-meta">
+                        <span class="upload-date">Загружено {{ material.upload_date_formatted|default:"недавно" }}</span>
+                        <span class="download-count">{{ material.download_count|default:"0" }} скачиваний</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="material-actions">
+                <button class="btn btn-primary download-btn" data-material-id="{{ material.id }}">
+                    <img src="{% static 'icons/download.svg' %}" alt="Скачать" width="20" height="20">
+                    {% if material.has_downloaded %}Скачать снова{% else %}Скачать материал{% endif %}
+                </button>
+                
+                {% if user.is_authenticated and user.username == material.user_id %}
+                <button class="btn btn-secondary edit-btn">
+                    <img src="{% static 'icons/edit.svg' %}" alt="Редактировать" width="20" height="20">
+                    Редактировать
+                </button>
+                <button class="btn btn-danger delete-btn" data-material-id="{{ material.id }}">
+                    <img src="{% static 'icons/trash.svg' %}" alt="Удалить" width="20" height="20">
+                    Удалить
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Material Description -->
+    <div class="material-description-section">
+        <h3>Описание</h3>
+        <div class="material-description">
+            {{ material.description|linebreaks|default:"Описание не предоставлено." }}
+        </div>
+    </div>
+    
+    <!-- Material Stats and Info -->
+    <div class="material-stats-section">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon"><img src="{% static 'icons/download.svg' %}" alt="download" width="20" height="20"></div>
+                <div class="stat-value">{{ material.download_count|default:"0" }}</div>
+                <div class="stat-label">Скачиваний</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📁</div>
+                <div class="stat-value">{{ material.formatted_file_size|default:"—" }}</div>
+                <div class="stat-label">Размер файла</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <div class="stat-value">{{ material.upload_date_formatted|default:"—" }}</div>
+                <div class="stat-label">Дата загрузки</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-value">{{ material.material_type|upper|default:"ФАЙЛ" }}</div>
+                <div class="stat-label">Тип файла</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- More from Author -->
+    <div class="more-from-author-section">
+        <h3>Больше материалов от {{ material.author_display_name }}</h3>
+        <div class="author-materials-grid" id="author-materials-grid">
+            <!-- Будет загружено через JavaScript -->
+            <div class="loading-placeholder">Загрузка материалов автора...</div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Material Detail Styles */
+.material-detail-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.material-header {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(37, 39, 159, 0.1);
+    border-left: 5px solid var(--accent-color);
+}
+
+.dark-theme .material-header {
+    background: rgba(7, 24, 31, 0.7);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.material-preview-large {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    border-radius: 15px;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(37, 88, 159, 0.1), rgba(67, 190, 235, 0.05));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 10px 30px rgba(37, 39, 159, 0.2);
+}
+
+.material-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.material-type-icon-large {
+    font-size: 120px;
+    opacity: 0.7;
+    animation: float 3s ease-in-out infinite;
+}
+
+.material-badges {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.material-type-badge, .material-size-badge {
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.material-type-badge {
+    background: var(--accent-color);
+}
+
+.material-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.material-title {
+    font-size: 32px;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.material-author-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: rgba(159, 37, 88, 0.05);
+    border-radius: 15px;
+    border-left: 3px solid var(--accent-color);
+}
+
+.author-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
+}
+
+.author-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-text {
+    color: white;
+    font-weight: bold;
+    font-size: 24px;
+}
+
+.author-name {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--primary-color);
+    text-decoration: none;
+    margin-bottom: 5px;
+}
+
+.author-name:hover {
+    color: var(--accent-color);
+}
+
+.material-meta {
+    display: flex;
+    gap: 20px;
+    color: var(--gray-color);
+    font-size: 14px;
+}
+
+.material-actions {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.material-actions .btn {
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    border: none;
+}
+
+.btn-primary {
+    background: var(--accent-color);
+    color: white;
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
+}
+
+.btn-primary:hover {
+    background: #1f2f4a;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(37, 47, 159, 0.4);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+
+.btn-secondary:hover {
+    background: rgba(37, 39, 159, 0.1);
+    transform: translateY(-3px);
+}
+
+.btn-danger {
+    background: transparent;
+    color: #ff4757;
+    border: 2px solid #ff4757;
+}
+
+.btn-danger:hover {
+    background: rgba(255, 71, 87, 0.1);
+    transform: translateY(-3px);
+}
+
+.material-description-section, .material-stats-section, .more-from-author-section {
+    margin-bottom: 40px;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(37, 39, 159, 0.1);
+}
+
+.dark-theme .material-description-section,
+.dark-theme .material-stats-section,
+.dark-theme .more-from-author-section {
+    background: rgba(7, 24, 31, 0.7);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.material-description-section h3,
+.material-stats-section h3,
+.more-from-author-section h3 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    font-size: 24px;
+    border-bottom: 2px solid rgba(37, 39, 159, 0.2);
+    padding-bottom: 10px;
+}
+
+.material-description {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-dark);
+}
+
+.dark-theme .material-description {
+    color: var(--text-light);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    text-align: center;
+    padding: 25px 20px;
+    background: rgba(159, 37, 88, 0.05);
+    border-radius: 15px;
+    transition: all 0.3s;
+    border-left: 4px solid var(--accent-color);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(37, 39, 159, 0.2);
+}
+
+.stat-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--accent-color);
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    color: var(--gray-color);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.author-materials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.loading-placeholder {
+    text-align: center;
+    padding: 40px;
+    color: var(--gray-color);
+    font-style: italic;
+}
+
+/* Animations */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .material-header {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .material-preview-large {
+        width: 100%;
+        height: 250px;
+        align-self: center;
+    }
+    
+    .material-title {
+        font-size: 24px;
+    }
+    
+    .material-author-section {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    
+    .material-meta {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+    
+    .material-actions {
+        justify-content: center;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .author-materials-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Download button functionality
+    const downloadBtn = document.querySelector('.download-btn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', function() {
+            const materialId = this.getAttribute('data-material-id');
+            downloadMaterial(materialId, this);
+        });
+    }
+    
+    // Delete button functionality
+    const deleteBtn = document.querySelector('.delete-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function() {
+            const materialId = this.getAttribute('data-material-id');
+            if (confirm('Вы уверены, что хотите удалить этот материал? Это действие нельзя отменить.')) {
+                deleteMaterial(materialId);
+            }
+        });
+    }
+    
+    // Load more materials from author
+    loadAuthorMaterials();
+    
+    function downloadMaterial(materialId, button) {
+        const originalText = button.innerHTML;
+        button.innerHTML = '<img src="/static/icons/loading.svg" width="20" height="20"> Скачивание...';
+        button.disabled = true;
+        
+        fetch(`/api/download-material/${materialId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const link = document.createElement('a');
+                    link.href = data.download_url;
+                    link.download = data.filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    button.innerHTML = '<img src="/static/icons/check.svg" width="20" height="20"> Скачано!';
+                    button.style.background = '#2ecc71';
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.style.background = '';
+                        button.disabled = false;
+                    }, 3000);
+                } else {
+                    throw new Error(data.error || 'Ошибка при скачивании');
+                }
+            })
+            .catch(error => {
+                console.error('Download error:', error);
+                button.innerHTML = '<img src="/static/icons/error.svg" width="20" height="20"> Ошибка';
+                button.style.background = '#ff4757';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = '';
+                    button.disabled = false;
+                }, 3000);
+                
+                alert('Ошибка при скачивании: ' + error.message);
+            });
+    }
+    
+    function deleteMaterial(materialId) {
+        fetch(`/api/delete-material/${materialId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value || ''
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Материал успешно удален!');
+                window.location.href = '/library/';
+            } else {
+                throw new Error(data.error || 'Не удалось удалить материал');
+            }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            alert('Ошибка при удалении: ' + error.message);
+        });
+    }
+    
+    function loadAuthorMaterials() {
+        const userId = '{{ material.user_id }}';
+        const currentMaterialId = '{{ material.material_id }}';
+        
+        fetch(`/api/list-user-materials/${userId}/?limit=4`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.materials && data.materials.length > 0) {
+                    const filteredMaterials = data.materials.filter(m => m.material_id !== currentMaterialId);
+                    displayAuthorMaterials(filteredMaterials.slice(0, 3));
+                } else {
+                    document.getElementById('author-materials-grid').innerHTML = 
+                        '<div class="loading-placeholder">У автора пока нет других материалов</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading author materials:', error);
+                document.getElementById('author-materials-grid').innerHTML = 
+                    '<div class="loading-placeholder">Ошибка при загрузке материалов автора</div>';
+            });
+    }
+    
+    function displayAuthorMaterials(materials) {
+        const container = document.getElementById('author-materials-grid');
+        
+        if (materials.length === 0) {
+            container.innerHTML = '<div class="loading-placeholder">У автора пока нет других материалов</div>';
+            return;
+        }
+        
+        container.innerHTML = '';
+        
+        materials.forEach(material => {
+            const materialCard = document.createElement('div');
+            materialCard.className = 'author-material-card';
+            materialCard.innerHTML = `
+                <div class="author-material-preview">
+                    <div class="author-material-icon">${getFileTypeIcon(material.material_type)}</div>
+                </div>
+                <div class="author-material-info">
+                    <h4><a href="/library/material/${material.user_id}__${material.material_id}/">${material.title}</a></h4>
+                    <p>${material.description ? material.description.substring(0, 80) + '...' : 'Без описания'}</p>
+                    <div class="author-material-meta">
+                        <span>${material.download_count || 0} скачиваний</span>
+                        <span>${material.upload_date_formatted || 'Недавно'}</span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(materialCard);
+        });
+    }
+    
+    function getFileTypeIcon(type) {
+        const icons = {
+            'book': '📚',
+            'pdf': '📄',
+            'presentation': '📊',
+            'document': '📝',
+            'archive': '📦',
+            'spreadsheet': '📈',
+            'image': '🖼️',
+            'audio': '🎵',
+            'other': '📎'
+        };
+        return icons[type] || icons['other'];
+    }
+});
+</script>
+
+<style>
+.author-material-card {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s;
+    border-left: 3px solid var(--accent-color);
+}
+
+.dark-theme .author-material-card {
+    background: rgba(7, 24, 31, 0.7);
+}
+
+.author-material-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(37, 39, 159, 0.2);
+}
+
+.author-material-preview {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.author-material-icon {
+    font-size: 48px;
+    opacity: 0.8;
+}
+
+.author-material-info h4 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+}
+
+.author-material-info h4 a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.author-material-info h4 a:hover {
+    color: var(--accent-color);
+}
+
+.author-material-info p {
+    font-size: 14px;
+    color: var(--gray-color);
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.author-material-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--gray-color);
+}
+</style>
+{% endblock %}

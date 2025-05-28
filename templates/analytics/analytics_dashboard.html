@@ -1,0 +1,434 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}Аналитика - KRONIK{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/analytics.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="analytics-container">
+    <div class="analytics-header">
+        <div class="header-content">
+            <h1>📊 Аналитика канала</h1>
+            <div class="header-controls">
+                <div class="date-range-selector">
+                    <select id="dateRange" class="date-range-select">
+                        <option value="7">Последние 7 дней</option>
+                        <option value="30" selected>Последние 30 дней</option>
+                        <option value="90">Последние 90 дней</option>
+                        <option value="365">Последний год</option>
+                    </select>
+                </div>
+                <button class="export-button" id="exportData">
+                    <span class="icon">📥</span>
+                    Экспорт данных
+                </button>
+                <button class="refresh-button" id="refreshData">
+                    <span class="icon">🔄</span>
+                    Обновить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="analytics-loading" id="analyticsLoading">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>Загрузка аналитики...</h3>
+            <p>Анализируем данные вашего канала</p>
+        </div>
+    </div>
+
+    <!-- Main Analytics Content -->
+    <div class="analytics-content" id="analyticsContent" style="display: none;">
+        
+        <!-- Overview Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card views-card">
+                <div class="stat-icon">👁️</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="totalViews">0</div>
+                    <div class="stat-label">Всего просмотров</div>
+                    <div class="stat-change" id="viewsChange">
+                        <span class="change-icon">📈</span>
+                        <span class="change-value">+0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card subscribers-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="totalSubscribers">0</div>
+                    <div class="stat-label">Подписчики</div>
+                    <div class="stat-change" id="subscribersChange">
+                        <span class="change-icon">📈</span>
+                        <span class="change-value">+0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card engagement-card">
+                <div class="stat-icon">💝</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="engagementRate">0%</div>
+                    <div class="stat-label">Вовлеченность</div>
+                    <div class="stat-change" id="engagementChange">
+                        <span class="change-icon">📈</span>
+                        <span class="change-value">+0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card revenue-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="totalRevenue">₽0.00</div>
+                    <div class="stat-label">Доход</div>
+                    <div class="stat-change" id="revenueChange">
+                        <span class="change-icon">📈</span>
+                        <span class="change-value">+0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-grid">
+            <!-- Views Over Time Chart -->
+            <div class="chart-container views-chart">
+                <div class="chart-header">
+                    <h3>📈 Просмотры по времени</h3>
+                    <div class="chart-controls">
+                        <button class="chart-control active" data-period="daily">День</button>
+                        <button class="chart-control" data-period="weekly">Неделя</button>
+                        <button class="chart-control" data-period="monthly">Месяц</button>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <canvas id="viewsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Demographics Chart -->
+            <div class="chart-container demographics-chart">
+                <div class="chart-header">
+                    <h3>🌍 Демография зрителей</h3>
+                </div>
+                <div class="chart-content">
+                    <canvas id="demographicsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Charts Row -->
+        <div class="charts-grid">
+            <!-- Engagement Chart -->
+            <div class="chart-container engagement-chart">
+                <div class="chart-header">
+                    <h3>💝 Вовлеченность</h3>
+                </div>
+                <div class="chart-content">
+                    <canvas id="engagementChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Traffic Sources -->
+            <div class="chart-container traffic-chart">
+                <div class="chart-header">
+                    <h3>🚀 Источники трафика</h3>
+                </div>
+                <div class="chart-content">
+                    <canvas id="trafficChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Tables Section -->
+        <div class="tables-section">
+            
+            <!-- Top Videos Table -->
+            <div class="table-container top-videos-table">
+                <div class="table-header">
+                    <h3>🏆 Топ видео</h3>
+                    <button class="view-all-btn" id="viewAllVideos">Смотреть все</button>
+                </div>
+                <div class="table-content">
+                    <table class="analytics-table" id="topVideosTable">
+                        <thead>
+                            <tr>
+                                <th>Видео</th>
+                                <th>Просмотры</th>
+                                <th>Лайки</th>
+                                <th>Дизлайки</th>
+                                <th>Вовлеченность</th>
+                                <th>Дата загрузки</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Engagement Metrics Table -->
+            <div class="table-container engagement-metrics-table">
+                <div class="table-header">
+                    <h3>📊 Метрики вовлеченности</h3>
+                </div>
+                <div class="table-content">
+                    <table class="analytics-table" id="engagementMetricsTable">
+                        <thead>
+                            <tr>
+                                <th>Метрика</th>
+                                <th>Значение</th>
+                                <th>Изменение</th>
+                                <th>Тренд</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Activity Table -->
+            <div class="table-container recent-activity-table">
+                <div class="table-header">
+                    <h3>⚡ Последняя активность</h3>
+                </div>
+                <div class="table-content">
+                    <table class="analytics-table" id="recentActivityTable">
+                        <thead>
+                            <tr>
+                                <th>Время</th>
+                                <th>Событие</th>
+                                <th>Видео</th>
+                                <th>Пользователь</th>
+                                <th>Подробности</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Revenue Analytics (Premium Feature) -->
+        <div class="revenue-section" id="revenueSection">
+            <div class="section-header">
+                <h2>💰 Анализ доходов</h2>
+                <div class="premium-badge">
+                    <span class="badge-icon">👑</span>
+                    <span class="badge-text">Premium</span>
+                </div>
+            </div>
+            
+            <div class="revenue-grid">
+                <div class="revenue-card total-revenue">
+                    <div class="revenue-icon">💎</div>
+                    <div class="revenue-content">
+                        <div class="revenue-amount" id="totalRevenueAmount">₽0.00</div>
+                        <div class="revenue-label">Общий доход</div>
+                        <div class="revenue-period">За всё время</div>
+                    </div>
+                </div>
+
+                <div class="revenue-card monthly-revenue">
+                    <div class="revenue-icon">📅</div>
+                    <div class="revenue-content">
+                        <div class="revenue-amount" id="monthlyRevenueAmount">₽0.00</div>
+                        <div class="revenue-label">Доход за месяц</div>
+                        <div class="revenue-period">Текущий месяц</div>
+                    </div>
+                </div>
+
+                <div class="revenue-card estimated-revenue">
+                    <div class="revenue-icon">🔮</div>
+                    <div class="revenue-content">
+                        <div class="revenue-amount" id="estimatedRevenueAmount">₽0.00</div>
+                        <div class="revenue-label">Прогноз дохода</div>
+                        <div class="revenue-period">Следующий месяц</div>
+                    </div>
+                </div>
+
+                <div class="revenue-card cpm-rate">
+                    <div class="revenue-icon">📊</div>
+                    <div class="revenue-content">
+                        <div class="revenue-amount" id="cpmRate">₽0.00</div>
+                        <div class="revenue-label">CPM</div>
+                        <div class="revenue-period">За 1000 просмотров</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="revenue-chart-container">
+                <div class="chart-header">
+                    <h3>📈 Динамика доходов</h3>
+                </div>
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Video Performance Details -->
+        <div class="performance-section" id="performanceSection">
+            <div class="section-header">
+                <h2>🎯 Детальная производительность</h2>
+            </div>
+            
+            <div class="performance-grid">
+                <!-- Video Retention Chart -->
+                <div class="performance-card retention-card">
+                    <div class="card-header">
+                        <h3>⏱️ Удержание зрителей</h3>
+                        <select class="video-selector" id="retentionVideoSelector">
+                            <option value="">Выберите видео...</option>
+                        </select>
+                    </div>
+                    <div class="card-content">
+                        <canvas id="retentionChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Click-through Rate -->
+                <div class="performance-card ctr-card">
+                    <div class="card-header">
+                        <h3>🎯 CTR по превью</h3>
+                    </div>
+                    <div class="card-content">
+                        <canvas id="ctrChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Growth Insights -->
+        <div class="insights-section" id="insightsSection">
+            <div class="section-header">
+                <h2>🚀 Инсайты роста</h2>
+            </div>
+            
+            <div class="insights-grid">
+                <div class="insight-card positive-insight">
+                    <div class="insight-icon">✅</div>
+                    <div class="insight-content">
+                        <h3>Что работает хорошо</h3>
+                        <ul id="positiveInsights">
+                            <li>Высокая вовлеченность в видео о программировании</li>
+                            <li>Стабильный рост подписчиков</li>
+                            <li>Хорошее удержание зрителей</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="insight-card improvement-insight">
+                    <div class="insight-icon">⚠️</div>
+                    <div class="insight-content">
+                        <h3>Области для улучшения</h3>
+                        <ul id="improvementInsights">
+                            <li>Низкий CTR на превью видео</li>
+                            <li>Мало комментариев под видео</li>
+                            <li>Неравномерность загрузок</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="insight-card recommendation-insight">
+                    <div class="insight-icon">💡</div>
+                    <div class="insight-content">
+                        <h3>Рекомендации</h3>
+                        <ul id="recommendationInsights">
+                            <li>Создавайте более привлекательные превью</li>
+                            <li>Задавайте вопросы в конце видео</li>
+                            <li>Загружайте видео регулярно</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Video Modal -->
+    <div class="modal" id="videoDetailsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📊 Детальная аналитика видео</h2>
+                <button class="modal-close" id="closeVideoModal">&times;</button>
+            </div>
+            <div class="modal-body" id="videoDetailsContent">
+                <!-- Video details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📥 Экспорт данных</h2>
+                <button class="modal-close" id="closeExportModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <h3>Выберите формат экспорта:</h3>
+                    <div class="format-options">
+                        <label class="format-option">
+                            <input type="radio" name="exportFormat" value="json" checked>
+                            <span class="format-icon">📄</span>
+                            <span class="format-name">JSON</span>
+                            <span class="format-desc">Структурированные данные</span>
+                        </label>
+                        <label class="format-option">
+                            <input type="radio" name="exportFormat" value="csv">
+                            <span class="format-icon">📊</span>
+                            <span class="format-name">CSV</span>
+                            <span class="format-desc">Таблица для Excel</span>
+                        </label>
+                    </div>
+                    
+                    <h3>Период данных:</h3>
+                    <div class="period-options">
+                        <select id="exportPeriod" class="export-select">
+                            <option value="7">Последние 7 дней</option>
+                            <option value="30" selected>Последние 30 дней</option>
+                            <option value="90">Последние 90 дней</option>
+                            <option value="365">Последний год</option>
+                            <option value="all">Все время</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="export-actions">
+                    <button class="export-cancel-btn" id="cancelExport">Отмена</button>
+                    <button class="export-confirm-btn" id="confirmExport">
+                        <span class="icon">📥</span>
+                        Экспортировать
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Toast -->
+<div class="toast" id="analyticsToast">
+    <div class="toast-content">
+        <span class="toast-icon"></span>
+        <span class="toast-message"></span>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="{% static 'js/analytics.js' %}"></script>
+{% endblock %}

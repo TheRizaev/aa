@@ -55,9 +55,10 @@
     
     <!-- Channel Navigation -->
     <div class="channel-navigation">
-        <div class="channel-navigation-item active">Видео</div>
-        <div class="channel-navigation-item">Плейлисты</div>
-        <div class="channel-navigation-item">О канале</div>
+        <div class="channel-navigation-item active" data-tab="videos">Видео</div>
+        <div class="channel-navigation-item" data-tab="materials">Материалы</div>
+        <div class="channel-navigation-item" data-tab="playlists">Плейлисты</div>
+        <div class="channel-navigation-item" data-tab="about">О канале</div>
     </div>
     
     <!-- Channel Content - Videos -->
@@ -104,6 +105,22 @@
         </div>
         {% endif %}
     </div>
+
+    <div class="channel-content-tab" id="materials-tab" style="display: none;">
+    <h2 class="section-title">Материалы <span class="materials-count" id="materials-count">(0)</span></h2>
+    
+    <!-- Materials Grid -->
+    <div class="materials-grid" id="channel-materials-grid">
+        <div class="loading-materials">
+            <div class="loading-spinner"></div>
+            <p>Загрузка материалов...</p>
+        </div>
+    </div>
+    
+    <div class="load-more-container" id="channel-materials-load-more" style="display: none;">
+        <button class="load-more-button" id="channel-materials-load-more-btn">Загрузить ещё</button>
+    </div>
+</div>
 </div>
 
 <!-- Confirmation Dialog for Unsubscribe -->
