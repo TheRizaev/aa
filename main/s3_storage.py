@@ -1382,21 +1382,7 @@ def upload_video_with_quality_processing(user_id, video_file_path, title=None, d
     
     return video_id
 
-def upload_material(user_id, material_file_path, title, description, material_type, category_id=None):
-    """
-    Upload a material file to S3 storage and create corresponding metadata
-    
-    Parameters:
-    - user_id: User ID or username (with @ prefix)
-    - material_file_path: Path to the material file on the local computer
-    - title: Material title
-    - description: Material description
-    - material_type: Type of material (book, pdf, etc.)
-    - category_id: Category ID (optional)
-    
-    Returns:
-    - material_id: Material ID if successful, None otherwise
-    """
+def upload_material(user_id, material_file_path, title, description, material_type):
     bucket = get_bucket()
     if not bucket:
         logger.error(f"Could not get bucket for material upload")
@@ -1405,9 +1391,8 @@ def upload_material(user_id, material_file_path, title, description, material_ty
     client = bucket['client']
     bucket_name = bucket['name']
     
-    # Create folder structure if it doesn't exist
     try:
-        folder_types = ["materials", "material_previews", "material_metadata"]
+        folder_types = ["materials", "material_metadata"]
         
         for folder_type in folder_types:
             folder_path = f"{user_id}/{folder_type}/"
@@ -1416,7 +1401,6 @@ def upload_material(user_id, material_file_path, title, description, material_ty
             try:
                 client.head_object(Bucket=bucket_name, Key=marker_key)
             except:
-                # If marker doesn't exist, create it
                 client.put_object(
                     Bucket=bucket_name,
                     Key=marker_key,
@@ -1426,23 +1410,18 @@ def upload_material(user_id, material_file_path, title, description, material_ty
     except Exception as e:
         logger.error(f"Error checking/creating folders for material upload: {e}")
     
-    # Generate material ID
     material_id = str(uuid.uuid4())
     
-    # Get filename and extension
     file_name = os.path.basename(material_file_path)
     file_extension = os.path.splitext(file_name)[1].lower()
     
-    # Form paths for storage
     material_path = f"{user_id}/materials/{material_id}{file_extension}"
     metadata_path = f"{user_id}/material_metadata/{material_id}.json"
     
     try:
-        # Get file size and MIME type
         file_size = os.path.getsize(material_file_path)
         mime_type = mimetypes.guess_type(material_file_path)[0] or 'application/octet-stream'
         
-        # Upload material file
         with open(material_file_path, 'rb') as file_data:
             client.put_object(
                 Bucket=bucket_name,
@@ -1451,7 +1430,6 @@ def upload_material(user_id, material_file_path, title, description, material_ty
                 ContentType=mime_type
             )
         
-        # Create metadata
         metadata = {
             "material_id": material_id,
             "user_id": user_id,
@@ -1463,15 +1441,9 @@ def upload_material(user_id, material_file_path, title, description, material_ty
             "file_size": file_size,
             "mime_type": mime_type,
             "material_type": material_type,
-            "category_id": category_id,
-            "download_count": 0,
-            "view_count": 0,
-            "rating_sum": 0,
-            "rating_count": 0,
-            "status": "published"
+            "download_count": 0
         }
         
-        # Save metadata
         client.put_object(
             Bucket=bucket_name,
             Key=metadata_path,

@@ -3,6 +3,7 @@ from . import views
 from . import gcs_views 
 from . import ai_views
 from . import material_views
+from . import analytics_views
 from .voice_assistant import voice_chat, start_voice_recognition, synthesize_text
 from django.conf import settings
 
@@ -71,6 +72,12 @@ urlpatterns = [
     path('library/', material_views.library_view, name='library'),
     path('library/my-materials/', material_views.my_materials_view, name='my_materials'),
     path('library/material/<str:material_id>/', material_views.material_detail_view, name='material_detail'),
+    
+    # НОВЫЕ URL-Ы ДЛЯ АНАЛИТИКИ
+    path('analytics/', analytics_views.analytics_dashboard, name='analytics_dashboard'),
+    path('api/analytics/overview/', analytics_views.analytics_api_overview, name='analytics_api_overview'),
+    path('api/analytics/video//', analytics_views.analytics_api_detailed, name='analytics_api_detailed'),
+    path('api/analytics/export/', analytics_views.analytics_api_export, name='analytics_api_export'),
     
     # Material API URLs
     path('api/upload-material/', material_views.upload_material_view, name='upload_material'),

@@ -7,10 +7,10 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from django.conf import settings
 from django.utils import timezone
-from .models import Material, MaterialCategory, MaterialDownload, MaterialRating, MaterialCollection
+from .models import Material, MaterialDownload
 from .s3_storage import (
     upload_material, get_material_metadata, list_user_materials, 
-    generate_material_download_url, delete_material, upload_material_preview,
+    generate_material_download_url, delete_material,
     get_all_materials_metadata, update_material_metadata
 )
 import os
@@ -23,10 +23,7 @@ logger = logging.getLogger(__name__)
 def library_view(request):
     """Главная страница библиотеки"""
     try:
-        categories = MaterialCategory.objects.all()
-        
         # Получаем параметры для фильтрации
-        category_filter = request.GET.get('category')
         material_type = request.GET.get('type')
         search_query = request.GET.get('q', '').strip()
         sort_by = request.GET.get('sort', 'newest')
@@ -81,9 +78,6 @@ def library_view(request):
         if material_type:
             filtered_materials = [m for m in filtered_materials if m.get('material_type') == material_type]
         
-        if category_filter:
-            filtered_materials = [m for m in filtered_materials if str(m.get('category_id')) == category_filter]
-        
         # Сортировка
         if sort_by == 'newest':
             filtered_materials.sort(key=lambda x: x.get('upload_date', ''), reverse=True)
@@ -103,8 +97,6 @@ def library_view(request):
         
         return render(request, 'library/library.html', {
             'materials': page_obj,
-            'categories': categories,
-            'current_category': category_filter,
             'current_type': material_type,
             'search_query': search_query,
             'sort_by': sort_by,
@@ -118,7 +110,6 @@ def library_view(request):
         messages.error(request, 'Ошибка при загрузке библиотеки')
         return render(request, 'library/library.html', {
             'materials': [],
-            'categories': [],
             'material_types': Material.MATERIAL_TYPES,
         })
 
@@ -183,14 +174,12 @@ def upload_material_view(request):
     try:
         # Получаем файлы и данные из запроса
         material_file = request.FILES.get('material_file')
-        preview_image = request.FILES.get('preview_image')
         title = request.POST.get('title')
         description = request.POST.get('description', '')
         material_type = request.POST.get('material_type')
-        category_id = request.POST.get('category_id')
         
-        if not material_file or not title:
-            return JsonResponse({'error': 'Файл материала и название обязательны'}, status=400)
+        if not material_file or not title or not material_type:
+            return JsonResponse({'error': 'Файл материала, название и тип обязательны'}, status=400)
         
         # Создаем временную директорию
         temp_dir = os.path.join(settings.BASE_DIR, 'temp', 'materials')
@@ -212,8 +201,7 @@ def upload_material_view(request):
             material_file_path=temp_material_path,
             title=title,
             description=description,
-            material_type=material_type,
-            category_id=category_id
+            material_type=material_type
         )
         
         if not material_id:
@@ -232,25 +220,8 @@ def upload_material_view(request):
                 file_name=material_file.name,
                 file_size=material_file.size,
                 file_type=material_type,
-                mime_type=material_file.content_type or 'application/octet-stream',
-                category_id=category_id if category_id else None
+                mime_type=material_file.content_type or 'application/octet-stream'
             )
-            
-            # Загружаем превью, если есть
-            if preview_image:
-                temp_preview_path = os.path.join(temp_dir, f"{uuid.uuid4()}_{preview_image.name}")
-                with open(temp_preview_path, 'wb+') as destination:
-                    for chunk in preview_image.chunks():
-                        destination.write(chunk)
-                
-                preview_success = upload_material_preview(user_id, material_id, temp_preview_path)
-                
-                if preview_success:
-                    material.preview_image_path = f"{user_id}/material_previews/{material_id}{os.path.splitext(preview_image.name)[1]}"
-                    material.save()
-                
-                if os.path.exists(temp_preview_path):
-                    os.remove(temp_preview_path)
             
         except Exception as db_error:
             logger.error(f"Error creating database record: {db_error}")

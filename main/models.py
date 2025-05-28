@@ -425,13 +425,6 @@ class Material(models.Model):
         ('other', '📎 Другое'),
     ]
     
-    DIFFICULTY_LEVELS = [
-        ('beginner', '🌱 Начальный'),
-        ('intermediate', '🌿 Средний'),
-        ('advanced', '🌳 Продвинутый'),
-        ('expert', '🏆 Экспертный'),
-    ]
-    
     # Основная информация
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200, verbose_name='Название')
@@ -445,29 +438,12 @@ class Material(models.Model):
     file_type = models.CharField(max_length=20, choices=MATERIAL_TYPES)
     mime_type = models.CharField(max_length=100)
     
-    # Классификация
-    category = models.ForeignKey(MaterialCategory, on_delete=models.SET_NULL, null=True, blank=True)
-    difficulty_level = models.CharField(max_length=20, choices=DIFFICULTY_LEVELS, default='beginner')
-    tags = models.CharField(max_length=500, blank=True, help_text='Теги через запятую')
-    
     # Статистика
     download_count = models.PositiveIntegerField(default=0)
-    view_count = models.PositiveIntegerField(default=0)
-    rating_sum = models.PositiveIntegerField(default=0)
-    rating_count = models.PositiveIntegerField(default=0)
-    
-    # Настройки доступа
-    is_public = models.BooleanField(default=True)
-    is_premium = models.BooleanField(default=False)
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     
     # Временные метки
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
-    # SEO и превью
-    preview_image_path = models.CharField(max_length=500, blank=True)  # Путь к превью изображению
-    excerpt = models.CharField(max_length=300, blank=True)  # Краткое описание
     
     class Meta:
         verbose_name = 'Material'
@@ -475,20 +451,12 @@ class Material(models.Model):
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['author', '-created_at']),
-            models.Index(fields=['category', '-created_at']),
             models.Index(fields=['file_type', '-created_at']),
             models.Index(fields=['-download_count']),
         ]
     
     def __str__(self):
         return self.title
-    
-    @property
-    def average_rating(self):
-        """Средний рейтинг материала"""
-        if self.rating_count == 0:
-            return 0
-        return round(self.rating_sum / self.rating_count, 1)
     
     @property
     def formatted_file_size(self):
@@ -506,7 +474,7 @@ class Material(models.Model):
         return os.path.splitext(self.file_name)[1].lower()
     
     def get_absolute_url(self):
-        return reverse('material_detail', kwargs={'pk': self.pk})
+        return reverse('material_detail', kwargs={'material_id': f"{self.author.username}__{self.id}"})
 
 class MaterialDownload(models.Model):
     """История скачиваний материалов"""
@@ -564,3 +532,470 @@ class MaterialCollection(models.Model):
     @property
     def materials_count(self):
         return self.materials.count()
+
+
+
+
+
+
+# Добавьте эти модели в main/models.py
+
+from django.db import models
+from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import datetime, timedelta
+import uuid
+
+class AnalyticsSession(models.Model):
+    """
+    Модель для отслеживания сессий аналитики
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='analytics_sessions')
+    session_start = models.DateTimeField(auto_now_add=True)
+    session_end = models.DateTimeField(null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    
+    # Данные сессии
+    pages_viewed = models.PositiveIntegerField(default=0)
+    total_time_spent = models.DurationField(default=timedelta(0))
+    
+    class Meta:
+        verbose_name = 'Analytics Session'
+        verbose_name_plural = 'Analytics Sessions'
+        ordering = ['-session_start']
+    
+    def __str__(self):
+        return f"Analytics session for {self.user.username} - {self.session_start}"
+
+class VideoAnalytics(models.Model):
+    """
+    Детальная аналитика по видео
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    video_id = models.CharField(max_length=255)  # ID видео в GCS
+    video_owner = models.CharField(max_length=255)  # Владелец видео
+    
+    # Ежедневная статистика
+    date = models.DateField()
+    views_count = models.PositiveIntegerField(default=0)
+    unique_viewers = models.PositiveIntegerField(default=0)
+    likes_count = models.PositiveIntegerField(default=0)
+    dislikes_count = models.PositiveIntegerField(default=0)
+    comments_count = models.PositiveIntegerField(default=0)
+    shares_count = models.PositiveIntegerField(default=0)
+    
+    # Время просмотра
+    total_watch_time = models.DurationField(default=timedelta(0))
+    average_watch_time = models.DurationField(default=timedelta(0))
+    
+    # Источники трафика
+    direct_traffic = models.PositiveIntegerField(default=0)
+    search_traffic = models.PositiveIntegerField(default=0)
+    social_traffic = models.PositiveIntegerField(default=0)
+    external_traffic = models.PositiveIntegerField(default=0)
+    
+    # Демографические данные
+    mobile_views = models.PositiveIntegerField(default=0)
+    desktop_views = models.PositiveIntegerField(default=0)
+    tablet_views = models.PositiveIntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('video_id', 'video_owner', 'date')
+        verbose_name = 'Video Analytics'
+        verbose_name_plural = 'Video Analytics'
+        ordering = ['-date']
+        indexes = [
+            models.Index(fields=['video_owner', '-date']),
+            models.Index(fields=['video_id', '-date']),
+        ]
+    
+    def __str__(self):
+        return f"Analytics for {self.video_id} on {self.date}"
+    
+    @property
+    def engagement_rate(self):
+        """Вычисляет коэффициент вовлеченности"""
+        if self.views_count == 0:
+            return 0
+        total_engagements = self.likes_count + self.dislikes_count + self.comments_count
+        return (total_engagements / self.views_count) * 100
+    
+    @property
+    def retention_rate(self):
+        """Вычисляет коэффициент удержания зрителей"""
+        if self.views_count == 0:
+            return 0
+        # Упрощенный расчет - можно улучшить с реальными данными времени просмотра
+        return min((self.total_watch_time.total_seconds() / 60) / self.views_count, 100)
+
+class ChannelAnalytics(models.Model):
+    """
+    Аналитика канала по дням
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    channel_owner = models.CharField(max_length=255)  # Владелец канала
+    
+    # Дата аналитики
+    date = models.DateField()
+    
+    # Основные метрики
+    total_views = models.PositiveIntegerField(default=0)
+    total_subscribers = models.PositiveIntegerField(default=0)
+    new_subscribers = models.IntegerField(default=0)  # Может быть отрицательным
+    total_videos = models.PositiveIntegerField(default=0)
+    
+    # Вовлеченность
+    total_likes = models.PositiveIntegerField(default=0)
+    total_dislikes = models.PositiveIntegerField(default=0)
+    total_comments = models.PositiveIntegerField(default=0)
+    total_shares = models.PositiveIntegerField(default=0)
+    
+    # Время просмотра
+    total_watch_time = models.DurationField(default=timedelta(0))
+    average_session_duration = models.DurationField(default=timedelta(0))
+    
+    # Доходы (для будущей монетизации)
+    estimated_revenue = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    ad_revenue = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('channel_owner', 'date')
+        verbose_name = 'Channel Analytics'
+        verbose_name_plural = 'Channel Analytics'
+        ordering = ['-date']
+        indexes = [
+            models.Index(fields=['channel_owner', '-date']),
+        ]
+    
+    def __str__(self):
+        return f"Channel analytics for {self.channel_owner} on {self.date}"
+    
+    @property
+    def engagement_rate(self):
+        """Общий коэффициент вовлеченности канала"""
+        if self.total_views == 0:
+            return 0
+        total_engagements = self.total_likes + self.total_dislikes + self.total_comments
+        return (total_engagements / self.total_views) * 100
+
+class ViewerDemographics(models.Model):
+    """
+    Демографические данные зрителей
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    channel_owner = models.CharField(max_length=255)
+    date = models.DateField()
+    
+    # Возрастные группы
+    age_13_17 = models.PositiveIntegerField(default=0)
+    age_18_24 = models.PositiveIntegerField(default=0)
+    age_25_34 = models.PositiveIntegerField(default=0)
+    age_35_44 = models.PositiveIntegerField(default=0)
+    age_45_54 = models.PositiveIntegerField(default=0)
+    age_55_64 = models.PositiveIntegerField(default=0)
+    age_65_plus = models.PositiveIntegerField(default=0)
+    
+    # Пол
+    male_viewers = models.PositiveIntegerField(default=0)
+    female_viewers = models.PositiveIntegerField(default=0)
+    other_gender = models.PositiveIntegerField(default=0)
+    
+    # Устройства
+    mobile_users = models.PositiveIntegerField(default=0)
+    desktop_users = models.PositiveIntegerField(default=0)
+    tablet_users = models.PositiveIntegerField(default=0)
+    smart_tv_users = models.PositiveIntegerField(default=0)
+    
+    # География (топ страны)
+    top_country_1 = models.CharField(max_length=100, default='Uzbekistan')
+    top_country_1_views = models.PositiveIntegerField(default=0)
+    top_country_2 = models.CharField(max_length=100, default='Russia')
+    top_country_2_views = models.PositiveIntegerField(default=0)
+    top_country_3 = models.CharField(max_length=100, default='Kazakhstan')
+    top_country_3_views = models.PositiveIntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('channel_owner', 'date')
+        verbose_name = 'Viewer Demographics'
+        verbose_name_plural = 'Viewer Demographics'
+        ordering = ['-date']
+    
+    def __str__(self):
+        return f"Demographics for {self.channel_owner} on {self.date}"
+
+class TrafficSource(models.Model):
+    """
+    Источники трафика
+    """
+    SOURCE_TYPES = [
+        ('direct', 'Прямой переход'),
+        ('search', 'Поисковые системы'),
+        ('social', 'Социальные сети'),
+        ('external', 'Внешние сайты'),
+        ('kronik_home', 'Главная KRONIK'),
+        ('kronik_search', 'Поиск KRONIK'),
+        ('subscriptions', 'Подписки'),
+        ('notifications', 'Уведомления'),
+        ('email', 'Email'),
+        ('other', 'Другое'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    video_id = models.CharField(max_length=255, null=True, blank=True)  # Если для конкретного видео
+    channel_owner = models.CharField(max_length=255)
+    date = models.DateField()
+    
+    source_type = models.CharField(max_length=20, choices=SOURCE_TYPES)
+    source_name = models.CharField(max_length=255)  # Конкретное название (Google, VK, etc.)
+    views_count = models.PositiveIntegerField(default=0)
+    unique_visitors = models.PositiveIntegerField(default=0)
+    
+    # Дополнительные метрики
+    bounce_rate = models.FloatField(default=0.0)  # Процент отказов
+    average_session_duration = models.DurationField(default=timedelta(0))
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Traffic Source'
+        verbose_name_plural = 'Traffic Sources'
+        ordering = ['-date', '-views_count']
+        indexes = [
+            models.Index(fields=['channel_owner', '-date']),
+            models.Index(fields=['video_id', '-date']),
+        ]
+    
+    def __str__(self):
+        return f"{self.source_name} ({self.source_type}) - {self.views_count} views"
+
+class AnalyticsReport(models.Model):
+    """
+    Сохраненные отчеты аналитики
+    """
+    REPORT_TYPES = [
+        ('daily', 'Ежедневный'),
+        ('weekly', 'Еженедельный'),
+        ('monthly', 'Ежемесячный'),
+        ('quarterly', 'Квартальный'),
+        ('yearly', 'Годовой'),
+        ('custom', 'Пользовательский'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='analytics_reports')
+    
+    title = models.CharField(max_length=255)
+    report_type = models.CharField(max_length=20, choices=REPORT_TYPES)
+    
+    # Период отчета
+    start_date = models.DateField()
+    end_date = models.DateField()
+    
+    # Данные отчета (JSON)
+    report_data = models.JSONField(default=dict)
+    
+    # Настройки отчета
+    include_videos = models.BooleanField(default=True)
+    include_demographics = models.BooleanField(default=True)
+    include_traffic = models.BooleanField(default=True)
+    include_revenue = models.BooleanField(default=False)
+    
+    # Автоматическая генерация
+    is_automated = models.BooleanField(default=False)
+    next_generation_date = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Analytics Report'
+        verbose_name_plural = 'Analytics Reports'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.title} ({self.report_type}) - {self.user.username}"
+    
+    def generate_report_data(self):
+        """Генерирует данные отчета"""
+        # Здесь будет логика генерации отчета
+        # Пока заглушка
+        self.report_data = {
+            'generated_at': timezone.now().isoformat(),
+            'period': f"{self.start_date} - {self.end_date}",
+            'summary': {},
+            'details': {}
+        }
+        self.save()
+
+class AnalyticsGoal(models.Model):
+    """
+    Цели аналитики
+    """
+    GOAL_TYPES = [
+        ('views', 'Просмотры'),
+        ('subscribers', 'Подписчики'),
+        ('engagement', 'Вовлеченность'),
+        ('watch_time', 'Время просмотра'),
+        ('revenue', 'Доход'),
+        ('custom', 'Пользовательская'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='analytics_goals')
+    
+    title = models.CharField(max_length=255)
+    goal_type = models.CharField(max_length=20, choices=GOAL_TYPES)
+    target_value = models.FloatField()  # Целевое значение
+    current_value = models.FloatField(default=0.0)  # Текущее значение
+    
+    # Период цели
+    start_date = models.DateField()
+    end_date = models.DateField()
+    
+    # Статус
+    is_active = models.BooleanField(default=True)
+    is_achieved = models.BooleanField(default=False)
+    achievement_date = models.DateTimeField(null=True, blank=True)
+    
+    # Уведомления
+    notify_on_progress = models.BooleanField(default=True)
+    notify_on_achievement = models.BooleanField(default=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Analytics Goal'
+        verbose_name_plural = 'Analytics Goals'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.title} - {self.current_value}/{self.target_value}"
+    
+    @property
+    def progress_percentage(self):
+        """Процент достижения цели"""
+        if self.target_value == 0:
+            return 0
+        return min((self.current_value / self.target_value) * 100, 100)
+    
+    def check_achievement(self):
+        """Проверяет, достигнута ли цель"""
+        if not self.is_achieved and self.current_value >= self.target_value:
+            self.is_achieved = True
+            self.achievement_date = timezone.now()
+            self.save()
+            return True
+        return False
+
+class AnalyticsAlert(models.Model):
+    """
+    Алерты и уведомления аналитики
+    """
+    ALERT_TYPES = [
+        ('spike', 'Резкий рост'),
+        ('drop', 'Резкое падение'),
+        ('goal_achieved', 'Цель достигнута'),
+        ('threshold', 'Превышен порог'),
+        ('anomaly', 'Аномалия'),
+        ('milestone', 'Веха'),
+    ]
+    
+    SEVERITY_LEVELS = [
+        ('low', 'Низкая'),
+        ('medium', 'Средняя'),
+        ('high', 'Высокая'),
+        ('critical', 'Критическая'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='analytics_alerts')
+    
+    alert_type = models.CharField(max_length=20, choices=ALERT_TYPES)
+    severity = models.CharField(max_length=10, choices=SEVERITY_LEVELS, default='medium')
+    
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    
+    # Связанные данные
+    related_video_id = models.CharField(max_length=255, null=True, blank=True)
+    related_metric = models.CharField(max_length=100, null=True, blank=True)
+    metric_value = models.FloatField(null=True, blank=True)
+    
+    # Статус
+    is_read = models.BooleanField(default=False)
+    is_dismissed = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = 'Analytics Alert'
+        verbose_name_plural = 'Analytics Alerts'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.title} ({self.severity}) - {self.user.username}"
+    
+    def mark_as_read(self):
+        """Отмечает алерт как прочитанный"""
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save()
+
+# Функции для автоматического создания аналитики
+def create_daily_analytics(channel_owner, date=None):
+    """
+    Создает ежедневную аналитику для канала
+    """
+    if date is None:
+        date = timezone.now().date()
+    
+    # Получаем или создаем запись
+    analytics, created = ChannelAnalytics.objects.get_or_create(
+        channel_owner=channel_owner,
+        date=date,
+        defaults={
+            'total_views': 0,
+            'total_subscribers': 0,
+            'new_subscribers': 0,
+            'total_videos': 0
+        }
+    )
+    
+    return analytics
+
+def update_video_analytics(video_id, video_owner, date=None):
+    """
+    Обновляет аналитику видео
+    """
+    if date is None:
+        date = timezone.now().date()
+    
+    analytics, created = VideoAnalytics.objects.get_or_create(
+        video_id=video_id,
+        video_owner=video_owner,
+        date=date,
+        defaults={
+            'views_count': 0,
+            'unique_viewers': 0,
+            'likes_count': 0,
+            'dislikes_count': 0,
+            'comments_count': 0
+        }
+    )
+    
+    return analytics
