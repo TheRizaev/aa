@@ -1096,3 +1096,66 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+
+@login_required
+@require_http_methods(["GET"])
+def get_user_comments(request):
+    """
+    API endpoint to get all comments from user's videos
+    """
+    try:
+        username = request.user.username
+        
+        # Parse pagination parameters
+        try:
+            offset = int(request.GET.get('offset', 0))
+        except (ValueError, TypeError):
+            offset = 0
+            
+        try:
+            limit = int(request.GET.get('limit', 20))
+        except (ValueError, TypeError):
+            limit = 20
+        
+        # Limit maximum results per request
+        limit = min(limit, 50)
+        
+        # Get comments data
+        from .s3_storage import get_all_user_comments
+        comments_data = get_all_user_comments(username, limit=limit, offset=offset)
+        
+        if not comments_data:
+            return JsonResponse({
+                'success': False,
+                'error': 'Failed to retrieve comments',
+                'comments': [],
+                'total': 0,
+                'has_more': False
+            }, status=500)
+        
+        # Generate avatar URLs for comments that have them
+        for comment in comments_data['comments']:
+            if comment.get('avatar_url'):
+                # The avatar_url in comments is already a signed URL, but it might be expired
+                # We can optionally refresh it here if needed
+                pass
+        
+        return JsonResponse({
+            'success': True,
+            'comments': comments_data['comments'],
+            'total': comments_data['total'],
+            'has_more': comments_data['has_more'],
+            'next_offset': comments_data.get('next_offset')
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting user comments: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'comments': [],
+            'total': 0,
+            'has_more': False
+        }, status=500)

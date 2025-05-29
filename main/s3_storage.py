@@ -1756,3 +1756,141 @@ def update_material_metadata(user_id, material_id, metadata):
     except Exception as e:
         logger.error(f"Error updating material metadata for {user_id}/{material_id}: {e}")
         return False
+    
+def get_all_user_comments(user_id, limit=20, offset=0):
+    """
+    Get all comments from all videos of a specific user with pagination
+    
+    Args:
+        user_id (str): User ID (with @ prefix)
+        limit (int): Maximum number of comments to return
+        offset (int): Offset for pagination
+        
+    Returns:
+        dict: Comments data with pagination info
+    """
+    bucket = get_bucket()
+    if not bucket:
+        logger.error(f"Could not get bucket for getting user comments")
+        return {"comments": [], "total": 0, "has_more": False}
+        
+    client = bucket['client']
+    bucket_name = bucket['name']
+    
+    try:
+        all_comments = []
+        
+        # Get all comment files for this user
+        comments_prefix = f"{user_id}/comments/"
+        
+        # List objects with the comments prefix
+        paginator = client.get_paginator('list_objects_v2')
+        pages = paginator.paginate(Bucket=bucket_name, Prefix=comments_prefix)
+        
+        for page in pages:
+            for obj in page.get('Contents', []):
+                if obj['Key'].endswith('_comments.json'):
+                    try:
+                        # Extract video_id from filename
+                        filename = obj['Key'].split('/')[-1]  # Get filename
+                        video_id = filename.replace('_comments.json', '')
+                        
+                        # Get comments data
+                        response = client.get_object(Bucket=bucket_name, Key=obj['Key'])
+                        comments_data = json.loads(response['Body'].read().decode('utf-8'))
+                        
+                        # Get video metadata for video title
+                        video_metadata = get_video_metadata(user_id, video_id)
+                        video_title = video_metadata.get('title', 'Unknown Video') if video_metadata else 'Unknown Video'
+                        
+                        # Process comments and add video info
+                        for comment in comments_data.get('comments', []):
+                            comment_with_video = comment.copy()
+                            comment_with_video['video_id'] = video_id
+                            comment_with_video['video_title'] = video_title
+                            comment_with_video['video_owner'] = user_id
+                            
+                            # Add replies count
+                            comment_with_video['replies_count'] = len(comment.get('replies', []))
+                            
+                            # Convert date string to datetime for sorting
+                            try:
+                                comment_date = datetime.fromisoformat(comment.get('date', ''))
+                                comment_with_video['sort_date'] = comment_date
+                                comment_with_video['formatted_date'] = format_comment_date(comment_date)
+                            except:
+                                comment_with_video['sort_date'] = datetime.min
+                                comment_with_video['formatted_date'] = 'Недавно'
+                            
+                            all_comments.append(comment_with_video)
+                            
+                            # Also add replies as separate items
+                            for reply in comment.get('replies', []):
+                                reply_with_info = reply.copy()
+                                reply_with_info['video_id'] = video_id
+                                reply_with_info['video_title'] = video_title
+                                reply_with_info['video_owner'] = user_id
+                                reply_with_info['is_reply'] = True
+                                reply_with_info['parent_comment_id'] = comment.get('id')
+                                reply_with_info['parent_comment_text'] = comment.get('text', '')[:50] + '...' if len(comment.get('text', '')) > 50 else comment.get('text', '')
+                                reply_with_info['replies_count'] = 0
+                                
+                                try:
+                                    reply_date = datetime.fromisoformat(reply.get('date', ''))
+                                    reply_with_info['sort_date'] = reply_date
+                                    reply_with_info['formatted_date'] = format_comment_date(reply_date)
+                                except:
+                                    reply_with_info['sort_date'] = datetime.min
+                                    reply_with_info['formatted_date'] = 'Недавно'
+                                
+                                all_comments.append(reply_with_info)
+                                
+                    except Exception as e:
+                        logger.error(f"Error processing comments file {obj['Key']}: {e}")
+        
+        # Sort by date (newest first)
+        all_comments.sort(key=lambda x: x.get('sort_date', datetime.min), reverse=True)
+        
+        # Apply pagination
+        total_comments = len(all_comments)
+        paginated_comments = all_comments[offset:offset + limit]
+        has_more = offset + limit < total_comments
+        
+        return {
+            "comments": paginated_comments,
+            "total": total_comments,
+            "has_more": has_more,
+            "next_offset": offset + limit if has_more else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting user comments: {e}")
+        return {"comments": [], "total": 0, "has_more": False}
+
+def format_comment_date(date_obj):
+    """Format comment date for display"""
+    try:
+        now = datetime.now()
+        diff = now - date_obj
+        
+        if diff.days == 0:
+            if diff.seconds < 3600:  # Less than 1 hour
+                minutes = diff.seconds // 60
+                return f"{minutes} мин назад" if minutes > 0 else "Только что"
+            else:
+                hours = diff.seconds // 3600
+                return f"{hours} ч назад"
+        elif diff.days == 1:
+            return "Вчера"
+        elif diff.days < 7:
+            return f"{diff.days} дн назад"
+        elif diff.days < 30:
+            weeks = diff.days // 7
+            return f"{weeks} нед назад"
+        elif diff.days < 365:
+            months = diff.days // 30
+            return f"{months} мес назад"
+        else:
+            return date_obj.strftime("%d.%m.%Y")
+    except:
+        return "Недавно"

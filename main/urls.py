@@ -43,6 +43,7 @@ urlpatterns = [
     path('api/add-comment/', gcs_views.add_comment, name='add_comment'),
     path('api/add-reply/', gcs_views.add_reply, name='add_reply'),
     path('api/track-view/', gcs_views.track_video_view, name='track_video_view'),
+    path('api/get-user-comments/', gcs_views.get_user_comments, name='get_user_comments'),
     
     # New endpoint for getting user profiles with avatar
     path('api/get-user-profile/', views.get_user_profile, name='get_user_profile'),
@@ -76,8 +77,9 @@ urlpatterns = [
     # НОВЫЕ URL-Ы ДЛЯ АНАЛИТИКИ
     path('analytics/', analytics_views.analytics_dashboard, name='analytics_dashboard'),
     path('api/analytics/overview/', analytics_views.analytics_api_overview, name='analytics_api_overview'),
-    path('api/analytics/video//', analytics_views.analytics_api_detailed, name='analytics_api_detailed'),
+    path('api/analytics/video/<str:video_id>/', analytics_views.analytics_api_detailed, name='analytics_api_detailed'),
     path('api/analytics/export/', analytics_views.analytics_api_export, name='analytics_api_export'),
+    path('api/analytics/studio-stats/', analytics_views.studio_analytics_api, name='studio_analytics_api'),
     
     # Material API URLs
     path('api/upload-material/', material_views.upload_material_view, name='upload_material'),
