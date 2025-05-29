@@ -403,11 +403,11 @@
                     <p>Детальный анализ производительности ваших видео</p>
                 </div>
                 
-                <div class="preview-stats">
+                <div class="preview-stats" id="real-stats-container">
                     <div class="preview-stat-card">
                         <div class="stat-icon">👁️</div>
                         <div class="stat-info">
-                            <div class="stat-value" id="previewViews">{{ basic_stats.total_views|default:0 }}</div>
+                            <div class="stat-value" id="realViews">Загрузка...</div>
                             <div class="stat-label">Всего просмотров</div>
                         </div>
                     </div>
@@ -415,7 +415,7 @@
                     <div class="preview-stat-card">
                         <div class="stat-icon">👥</div>
                         <div class="stat-info">
-                            <div class="stat-value" id="previewSubscribers">{{ basic_stats.subscribers|default:0 }}</div>
+                            <div class="stat-value" id="realSubscribers">Загрузка...</div>
                             <div class="stat-label">Подписчики</div>
                         </div>
                     </div>
@@ -423,7 +423,7 @@
                     <div class="preview-stat-card">
                         <div class="stat-icon">💝</div>
                         <div class="stat-info">
-                            <div class="stat-value" id="previewEngagement">{{ basic_stats.engagement_rate|default:0 }}%</div>
+                            <div class="stat-value" id="realEngagement">Загрузка...</div>
                             <div class="stat-label">Вовлеченность</div>
                         </div>
                     </div>
@@ -431,7 +431,7 @@
                     <div class="preview-stat-card">
                         <div class="stat-icon">📹</div>
                         <div class="stat-info">
-                            <div class="stat-value" id="previewVideos">{{ basic_stats.total_videos|default:0 }}</div>
+                            <div class="stat-value" id="realVideos">Загрузка...</div>
                             <div class="stat-label">Видео</div>
                         </div>
                     </div>
@@ -449,10 +449,6 @@
                     </a>
                     
                     <div class="quick-actions">
-                        <button class="quick-action-btn" onclick="loadQuickStats()">
-                            <span class="icon">🔄</span>
-                            Обновить
-                        </button>
                         <button class="quick-action-btn" onclick="exportQuickData()">
                             <span class="icon">📥</span>
                             Экспорт
@@ -518,8 +514,38 @@
 
     <div class="tab-content hidden" id="comments-content">
         <div class="comments-dashboard">
-            <h3>Панель комментариев</h3>
-            <p style="text-align: center; padding: 50px 0;">Комментариев пока нет. Комментарии к вашим видео появятся здесь.</p>
+            <div class="comments-header">
+                <h3>Комментарии к вашим видео</h3>
+                <div class="comments-stats">
+                    <div class="comment-stat-card">
+                        <div class="stat-number" id="total-comments">0</div>
+                        <div class="stat-label">Всего комментариев</div>
+                    </div>
+                    <div class="comment-stat-card">
+                        <div class="stat-number" id="total-replies">0</div>
+                        <div class="stat-label">Ответов</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="comments-filter">
+                <button class="filter-button active" data-filter="all">Все комментарии</button>
+                <button class="filter-button" data-filter="comments">Только комментарии</button>
+                <button class="filter-button" data-filter="replies">Только ответы</button>
+                <button class="filter-button" data-filter="recent">Последние 24 часа</button>
+            </div>
+            
+            <div class="comments-list" id="comments-list">
+                <!-- Comments will be loaded here -->
+                <div class="comments-loading">
+                    <div class="loading-spinner"></div>
+                    <p>Загрузка комментариев...</p>
+                </div>
+            </div>
+            
+            <div class="load-more-comments" id="load-more-container" style="display: none;">
+                <button class="load-more-btn" id="load-more-btn">Загрузить еще</button>
+            </div>
         </div>
     </div>
 
@@ -3096,6 +3122,1168 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     });
+</script>
+
+<script>
+
+    document.addEventListener('DOMContentLoaded', function() {
+    // Загрузить реальные данные аналитики при переключении на вкладку
+    const analyticsTab = document.querySelector('[data-tab="analytics"]');
+    let analyticsLoaded = false;
+    
+    if (analyticsTab) {
+        analyticsTab.addEventListener('click', function() {
+            if (!analyticsLoaded) {
+                loadRealAnalyticsData();
+                analyticsLoaded = true;
+            }
+        });
+    }
+    
+    // Если вкладка аналитики уже активна, загрузить данные
+    if (analyticsTab && analyticsTab.classList.contains('active')) {
+        loadRealAnalyticsData();
+    }
+});
+
+function loadRealAnalyticsData() {
+    console.log('Loading REAL analytics data for studio...');
+    
+    // Показать индикаторы загрузки
+    showAnalyticsLoading();
+    
+    // Загрузить реальные данные аналитики через API
+    fetch('/api/analytics/studio-stats/', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCSRFToken(),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        console.log('Studio analytics response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Studio analytics data received:', data);
+        if (data.success && data.data) {
+            updateRealAnalyticsDisplay(data.data);
+            // Загружаем данные для графика отдельно
+            loadRealViewsDataForChart();
+        } else {
+            throw new Error(data.error || 'Не удалось получить данные аналитики');
+        }
+    })
+    .catch(error => {
+        console.error('Error loading studio analytics:', error);
+        showAnalyticsError(error.message);
+    });
+}
+
+function loadRealViewsDataForChart() {
+    console.log('Loading REAL views data for chart...');
+    
+    // Загрузить данные просмотров за последние 7 дней
+    fetch('/api/analytics/overview/?days=7', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCSRFToken(),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Views data for chart received:', data);
+        if (data.success && data.data && data.data.views_over_time) {
+            // Используем реальные данные
+            createRealAnalyticsChart(data.data.views_over_time);
+        } else {
+            console.log('No views data available, creating chart with zeros');
+            // Создаем график с нулевыми данными (но реальными)
+            createRealAnalyticsChart([]);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading views data for chart:', error);
+        // В случае ошибки создаем график с нулевыми данными
+        createRealAnalyticsChart([]);
+    });
+}
+
+function loadViewsDataForChart() {
+    // Загрузить данные просмотров для графика
+    fetch('/api/analytics/overview/?days=7', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCSRFToken(),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.data) {
+            createRealAnalyticsChart(data.data.views_over_time || []);
+        } else {
+            createRealAnalyticsChart([]);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading views data:', error);
+        createRealAnalyticsChart([]);
+    });
+}
+
+function showAnalyticsLoading() {
+    document.getElementById('realViews').innerHTML = '<div class="loading-spinner-small"></div>';
+    document.getElementById('realSubscribers').innerHTML = '<div class="loading-spinner-small"></div>';
+    document.getElementById('realEngagement').innerHTML = '<div class="loading-spinner-small"></div>';
+    document.getElementById('realVideos').innerHTML = '<div class="loading-spinner-small"></div>';
+}
+
+function updateRealAnalyticsDisplay(analyticsData) {
+    const stats = analyticsData.stats || {};
+    
+    console.log('Updating studio analytics display with real data:', stats);
+    
+    // Обновить счетчики с анимацией
+    animateCounter(document.getElementById('realViews'), stats.total_views || 0);
+    animateCounter(document.getElementById('realSubscribers'), stats.subscribers || 0);
+    document.getElementById('realEngagement').textContent = (stats.engagement_rate || 0).toFixed(1) + '%';
+    animateCounter(document.getElementById('realVideos'), stats.total_videos || 0);
+}
+
+function animateCounter(element, targetValue) {
+    if (!element) return;
+    
+    const startValue = 0;
+    const duration = 1500;
+    const startTime = performance.now();
+    
+    function updateCounter(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function for smooth animation
+        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+        const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOutQuart);
+        
+        element.textContent = formatNumber(currentValue);
+        
+        if (progress < 1) {
+            requestAnimationFrame(updateCounter);
+        } else {
+            element.textContent = formatNumber(targetValue);
+        }
+    }
+    
+    requestAnimationFrame(updateCounter);
+}
+
+function formatNumber(num) {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+}
+
+function createRealAnalyticsChart(viewsData) {
+    const canvas = document.getElementById('previewChart');
+    if (!canvas) {
+        console.log('Preview chart canvas not found');
+        return;
+    }
+    
+    // Проверить, загружен ли Chart.js
+    if (typeof Chart === 'undefined') {
+        console.log('Chart.js not loaded, loading it dynamically...');
+        loadChartJS().then(() => {
+            createRealAnalyticsChart(viewsData);
+        });
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Подготовить РЕАЛЬНЫЕ данные для графика
+    let labels = [];
+    let data = [];
+    let hasRealData = false;
+    
+    if (viewsData && viewsData.length > 0) {
+        // Используем реальные данные из API
+        labels = viewsData.map(item => {
+            const date = new Date(item.date);
+            return date.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' });
+        });
+        data = viewsData.map(item => item.views || 0);
+        hasRealData = true;
+        console.log('Using REAL views data for chart:', data);
+    } else {
+        // Если нет данных от API, попробуем получить их сами
+        console.log('No API data, fetching real views data...');
+        
+        // Создаем запрос для получения реальных данных просмотров
+        fetch('/api/analytics/overview/?days=7', {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(apiData => {
+            if (apiData.success && apiData.data && apiData.data.views_over_time) {
+                console.log('Retrieved real data from API:', apiData.data.views_over_time);
+                createRealAnalyticsChart(apiData.data.views_over_time);
+                return;
+            } else {
+                // Если API не работает, создаем график с нулевыми данными
+                createChartWithZeroData();
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching real data:', error);
+            createChartWithZeroData();
+        });
+        return;
+    }
+    
+    function createChartWithZeroData() {
+        // Создать данные за последние 7 дней с нулевыми значениями (но реальными датами)
+        const today = new Date();
+        labels = [];
+        data = [];
+        
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            labels.push(date.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }));
+            data.push(0); // Реальные нули, а не случайные числа
+        }
+        console.log('Using real zero data (no views yet):', data);
+        createTheChart();
+    }
+    
+    function createTheChart() {
+        // Уничтожить предыдущий график, если существует
+        if (window.previewChartInstance) {
+            window.previewChartInstance.destroy();
+        }
+        
+        console.log('Creating studio analytics chart with real data:', data);
+        
+        // Создать новый график с желтыми точками и красивым дизайном
+        window.previewChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Просмотры',
+                    data: data,
+                    borderColor: '#f39c12', // Оранжево-желтая линия
+                    backgroundColor: 'rgba(243, 156, 18, 0.1)', // Прозрачная заливка
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#f1c40f', // Желтые точки
+                    pointBorderColor: '#f39c12', // Оранжевая обводка точек
+                    pointBorderWidth: 2,
+                    pointRadius: 6, // Увеличенные точки
+                    pointHoverRadius: 8,
+                    pointHoverBackgroundColor: '#f1c40f',
+                    pointHoverBorderColor: '#e67e22',
+                    pointHoverBorderWidth: 3,
+                    // Добавляем тень к линии
+                    shadowColor: 'rgba(243, 156, 18, 0.3)',
+                    shadowBlur: 10,
+                    shadowOffsetX: 2,
+                    shadowOffsetY: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(241, 196, 15, 0.95)',
+                        titleColor: '#2c3e50',
+                        bodyColor: '#2c3e50',
+                        borderColor: '#f39c12',
+                        borderWidth: 2,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                if (value === 0) {
+                                    return 'Пока нет просмотров';
+                                } else if (value === 1) {
+                                    return '1 просмотр';
+                                } else if (value < 5) {
+                                    return `${value} просмотра`;
+                                } else {
+                                    return `${value} просмотров`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 12,
+                                weight: '500'
+                            },
+                            color: '#7f8c8d'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(52, 73, 94, 0.1)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 11,
+                                weight: '500'
+                            },
+                            color: '#7f8c8d',
+                            callback: function(value) {
+                                if (value === 0) return '0';
+                                return formatNumber(value);
+                            },
+                            // Ограничиваем количество делений на оси Y
+                            maxTicksLimit: 5
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                },
+                // Добавляем анимацию появления
+                animation: {
+                    duration: 1500,
+                    easing: 'easeOutQuart'
+                },
+                // Добавляем анимацию при наведении
+                hover: {
+                    animationDuration: 300
+                }
+            }
+        });
+        
+        // Добавим небольшую анимацию появления точек
+        setTimeout(() => {
+            if (window.previewChartInstance) {
+                window.previewChartInstance.update('active');
+            }
+        }, 500);
+    }
+    
+    // Если у нас есть данные, создаем график сразу
+    if (hasRealData || data.length > 0) {
+        createTheChart();
+    }
+}
+
+function loadChartJS() {
+    return new Promise((resolve, reject) => {
+        if (typeof Chart !== 'undefined') {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
+        script.onload = () => {
+            console.log('Chart.js loaded successfully');
+            resolve();
+        };
+        script.onerror = () => {
+            console.error('Failed to load Chart.js');
+            reject(new Error('Failed to load Chart.js'));
+        };
+        document.head.appendChild(script);
+    });
+}
+
+function showAnalyticsError(message) {
+    const statsContainer = document.getElementById('real-stats-container');
+    if (statsContainer) {
+        statsContainer.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 20px; background: rgba(255, 76, 87, 0.1); border-radius: 12px; border-left: 4px solid #ff4c57;">
+                <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+                <h4 style="margin: 0 0 10px 0; color: #ff4c57;">Ошибка загрузки аналитики</h4>
+                <p style="margin: 0; color: var(--gray-color);">${message}</p>
+                <button onclick="loadRealAnalyticsData()" style="margin-top: 15px; padding: 8px 16px; background: #ff4c57; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    Попробовать снова
+                </button>
+            </div>
+        `;
+    }
+}
+
+function exportQuickData() {
+    const button = event.target.closest('.quick-action-btn');
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<span class="icon">⏳</span> Экспорт...';
+    button.disabled = true;
+    
+    fetch('/api/analytics/export/?format=json&days=30', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Создать и скачать файл
+            const blob = new Blob([JSON.stringify(data.data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `analytics_export_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            button.innerHTML = '<span class="icon">✅</span> Готово!';
+            button.style.background = '#2ecc71';
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.style.background = '';
+                button.disabled = false;
+            }, 2000);
+            
+            showStudioToast('Данные аналитики экспортированы!', 'success');
+        } else {
+            throw new Error(data.error || 'Ошибка экспорта');
+        }
+    })
+    .catch(error => {
+        console.error('Export error:', error);
+        button.innerHTML = '<span class="icon">❌</span> Ошибка';
+        button.style.background = '#ff4757';
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.style.background = '';
+            button.disabled = false;
+        }, 2000);
+        
+        showStudioToast('Ошибка экспорта: ' + error.message, 'error');
+    });
+}
+
+function getCSRFToken() {
+    const token = document.querySelector('[name=csrfmiddlewaretoken]');
+    return token ? token.value : '';
+}
+
+function showStudioToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `studio-toast studio-toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+            <span class="toast-message">${message}</span>
+        </div>
+    `;
+    
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        z-index: 1000;
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+        border-left: 4px solid ${type === 'success' ? '#27ae60' : type === 'error' ? '#ff4757' : '#3498db'};
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        toast.style.transform = 'translateX(400px)';
+        setTimeout(() => {
+            if (document.body.contains(toast)) {
+                document.body.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Стили для загрузки
+const loadingStyles = document.createElement('style');
+loadingStyles.textContent = `
+    .loading-spinner-small {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(37, 39, 159, 0.1);
+        border-left: 2px solid var(--accent-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .preview-stat-card .stat-value {
+        min-height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+    
+    .analytics-preview {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(37, 39, 159, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .dark-theme .analytics-preview {
+        background: var(--medium-bg);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+    
+    .analytics-preview:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 40px rgba(37, 39, 159, 0.15);
+    }
+    
+    .preview-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .preview-stat-card {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 20px;
+        background: rgba(37, 39, 159, 0.05);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    
+    .preview-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(37, 39, 159, 0.1);
+        border-left-color: var(--accent-color);
+    }
+    
+    .dark-theme .preview-stat-card {
+        background: rgba(37, 39, 159, 0.2);
+    }
+    
+    .preview-stat-card .stat-icon {
+        font-size: 32px;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(37, 39, 159, 0.1);
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    
+    .stat-info {
+        flex: 1;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 5px;
+        min-height: 32px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .dark-theme .stat-value {
+        color: var(--text-light);
+    }
+    
+    .stat-label {
+        font-size: 14px;
+        color: var(--gray-color);
+    }
+    
+    .preview-chart {
+        margin-bottom: 30px;
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(37, 39, 159, 0.02);
+        border-radius: 12px;
+        border: 1px solid rgba(37, 39, 159, 0.1);
+        position: relative;
+    }
+    
+    .analytics-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .full-analytics-btn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 15px 25px;
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        color: white;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(37, 39, 159, 0.3);
+    }
+    
+    .full-analytics-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(37, 39, 159, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .btn-arrow {
+        font-size: 18px;
+        transition: transform 0.3s ease;
+    }
+    
+    .full-analytics-btn:hover .btn-arrow {
+        transform: translateX(5px);
+    }
+    
+    .quick-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .quick-action-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 15px;
+        background: transparent;
+        border: 2px solid rgba(37, 39, 159, 0.2);
+        border-radius: 20px;
+        color: var(--primary-color);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .dark-theme .quick-action-btn {
+        color: var(--text-light);
+    }
+    
+    .quick-action-btn:hover:not(:disabled) {
+        background: rgba(37, 39, 159, 0.1);
+        border-color: var(--accent-color);
+        transform: translateY(-2px);
+    }
+    
+    .quick-action-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .preview-stats {
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .analytics-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .full-analytics-btn {
+            justify-content: center;
+        }
+        
+        .quick-actions {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .preview-stats {
+            grid-template-columns: 1fr;
+        }
+        
+        .analytics-preview {
+            padding: 20px;
+        }
+    }
+`;
+
+if (!document.head.querySelector('#studio-loading-styles')) {
+    loadingStyles.id = 'studio-loading-styles';
+    document.head.appendChild(loadingStyles);
+}
+
+</script>
+
+<script>
+// Comments Tab Functionality
+let commentsData = {
+    comments: [],
+    currentOffset: 0,
+    hasMore: false,
+    loading: false,
+    currentFilter: 'all'
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize comments tab
+    initializeCommentsTab();
+    
+    function initializeCommentsTab() {
+        // Load comments when comments tab is clicked
+        const commentsTab = document.querySelector('[data-tab="comments"]');
+        if (commentsTab) {
+            commentsTab.addEventListener('click', function() {
+                if (!this.classList.contains('comments-loaded')) {
+                    loadComments();
+                    this.classList.add('comments-loaded');
+                }
+            });
+        }
+        
+        // Filter buttons functionality
+        const filterButtons = document.querySelectorAll('.comments-filter .filter-button');
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Update active state
+                filterButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Apply filter
+                const filter = this.getAttribute('data-filter');
+                applyCommentsFilter(filter);
+            });
+        });
+        
+        // Load more button functionality
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', function() {
+                if (!commentsData.loading && commentsData.hasMore) {
+                    loadMoreComments();
+                }
+            });
+        }
+        
+        // Add search functionality to comments header
+        addSearchToCommentsHeader();
+    }
+    
+    /**
+     * Load initial comments from the server
+     */
+    function loadComments() {
+        if (commentsData.loading) return;
+        
+        commentsData.loading = true;
+        showCommentsLoading();
+        
+        fetch('/api/get-user-comments/?limit=20&offset=0')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    commentsData.comments = data.comments;
+                    commentsData.currentOffset = data.comments.length;
+                    commentsData.hasMore = data.has_more;
+                    
+                    updateCommentsStats(data.total, data.comments);
+                    renderComments(data.comments);
+                    
+                    if (data.has_more) {
+                        document.getElementById('load-more-container').style.display = 'flex';
+                    }
+                } else {
+                    showCommentsError(data.error || 'Ошибка при загрузке комментариев');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading comments:', error);
+                showCommentsError('Ошибка при загрузке комментариев');
+            })
+            .finally(() => {
+                commentsData.loading = false;
+            });
+    }
+    
+    /**
+     * Load more comments for pagination
+     */
+    function loadMoreComments() {
+        if (commentsData.loading || !commentsData.hasMore) return;
+        
+        commentsData.loading = true;
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        loadMoreBtn.disabled = true;
+        loadMoreBtn.textContent = 'Загрузка...';
+        
+        fetch(`/api/get-user-comments/?limit=20&offset=${commentsData.currentOffset}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    commentsData.comments = [...commentsData.comments, ...data.comments];
+                    commentsData.currentOffset += data.comments.length;
+                    commentsData.hasMore = data.has_more;
+                    
+                    appendComments(data.comments);
+                    
+                    if (!data.has_more) {
+                        document.getElementById('load-more-container').style.display = 'none';
+                    }
+                } else {
+                    alert('Ошибка при загрузке дополнительных комментариев');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading more comments:', error);
+                alert('Ошибка при загрузке дополнительных комментариев');
+            })
+            .finally(() => {
+                commentsData.loading = false;
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.textContent = 'Загрузить еще';
+            });
+    }
+    
+    /**
+     * Update comments statistics display
+     */
+    function updateCommentsStats(total, comments) {
+        const totalCommentsEl = document.getElementById('total-comments');
+        const totalRepliesEl = document.getElementById('total-replies');
+        
+        const replies = comments.filter(c => c.is_reply);
+        const regularComments = comments.filter(c => !c.is_reply);
+        
+        if (totalCommentsEl) totalCommentsEl.textContent = total;
+        if (totalRepliesEl) totalRepliesEl.textContent = replies.length;
+    }
+    
+    /**
+     * Render comments list
+     */
+    function renderComments(comments) {
+        const commentsList = document.getElementById('comments-list');
+        
+        if (comments.length === 0) {
+            commentsList.innerHTML = `
+                <div class="empty-comments">
+                    <div class="empty-comments-icon">💬</div>
+                    <h4>Комментариев пока нет</h4>
+                    <p>Комментарии к вашим видео будут отображаться здесь. Создайте интересный контент, чтобы зрители оставляли отзывы!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        commentsList.innerHTML = '';
+        appendComments(comments);
+    }
+    
+    /**
+     * Append comments to the existing list
+     */
+    function appendComments(comments) {
+        const commentsList = document.getElementById('comments-list');
+        
+        comments.forEach(comment => {
+            const commentElement = createCommentElement(comment);
+            commentsList.appendChild(commentElement);
+        });
+    }
+    
+    /**
+     * Create HTML element for a single comment
+     */
+    function createCommentElement(comment) {
+        const div = document.createElement('div');
+        div.className = `comment-item ${comment.is_reply ? 'reply' : ''}`;
+        div.setAttribute('data-comment-id', comment.id);
+        div.setAttribute('data-video-id', comment.video_id);
+        
+        // Generate avatar content
+        const avatarContent = comment.avatar_url 
+            ? `<img src="${comment.avatar_url}" alt="${comment.display_name || comment.user_id}">`
+            : getInitials(comment.display_name || comment.user_id);
+        
+        // Generate reply indicator for replies
+        const replyIndicator = comment.is_reply ? `
+            <div class="reply-indicator">
+                <strong>Ответ на комментарий:</strong>
+                <div class="parent-comment-text">"${comment.parent_comment_text}"</div>
+            </div>
+        ` : '';
+        
+        // Build complete HTML structure
+        div.innerHTML = `
+            ${replyIndicator}
+            <div class="comment-header">
+                <div class="comment-avatar">
+                    ${avatarContent}
+                </div>
+                <div class="comment-author-info">
+                    <div class="comment-author">${comment.display_name || comment.user_id}</div>
+                    <div class="comment-video-info">
+                        <span>на видео</span>
+                        <a href="/video/${comment.video_owner}__${comment.video_id}/" class="video-link" target="_blank">
+                            ${comment.video_title}
+                        </a>
+                    </div>
+                </div>
+                <div class="comment-date">${comment.formatted_date}</div>
+            </div>
+            
+            <div class="comment-content">
+                <div class="comment-text">${comment.text}</div>
+            </div>
+            
+            <div class="comment-actions">
+                ${!comment.is_reply ? `<span class="comment-action like-action">❤️ ${comment.likes || 0}</span>` : ''}
+                ${!comment.is_reply && comment.replies_count > 0 ? `<span class="comment-action">💬 ${comment.replies_count} ответов</span>` : ''}
+                <a href="/video/${comment.video_owner}__${comment.video_id}/" class="comment-action" target="_blank">
+                    👁️ Посмотреть видео
+                </a>
+                <button class="comment-action reply-action" onclick="replyToComment('${comment.id}', '${comment.video_id}')">
+                    ↩️ Ответить
+                </button>
+            </div>
+        `;
+        
+        return div;
+    }
+    
+    /**
+     * Get initials from name for avatar
+     */
+    function getInitials(name) {
+        if (!name) return '?';
+        const words = name.split(' ');
+        if (words.length >= 2) {
+            return words[0][0] + words[1][0];
+        }
+        return name[0] || '?';
+    }
+    
+    /**
+     * Show loading state
+     */
+    function showCommentsLoading() {
+        const commentsList = document.getElementById('comments-list');
+        commentsList.innerHTML = `
+            <div class="comments-loading">
+                <div class="loading-spinner"></div>
+                <p>Загрузка комментариев...</p>
+            </div>
+        `;
+    }
+    
+    /**
+     * Show error state
+     */
+    function showCommentsError(error) {
+        const commentsList = document.getElementById('comments-list');
+        commentsList.innerHTML = `
+            <div class="empty-comments">
+                <div class="empty-comments-icon">⚠️</div>
+                <h4>Ошибка загрузки</h4>
+                <p>${error}</p>
+                <button onclick="loadComments()" style="margin-top: 15px; padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 20px; cursor: pointer;">
+                    Попробовать снова
+                </button>
+            </div>
+        `;
+    }
+    
+    /**
+     * Apply filter to comments
+     */
+    function applyCommentsFilter(filter) {
+        commentsData.currentFilter = filter;
+        const commentItems = document.querySelectorAll('.comment-item');
+        
+        commentItems.forEach(item => {
+            let show = true;
+            const isReply = item.classList.contains('reply');
+            
+            switch (filter) {
+                case 'comments':
+                    show = !isReply;
+                    break;
+                case 'replies':
+                    show = isReply;
+                    break;
+                case 'recent':
+                    // Show comments from last 24 hours
+                    const commentDate = item.querySelector('.comment-date').textContent;
+                    show = commentDate.includes('ч назад') || 
+                           commentDate.includes('мин назад') || 
+                           commentDate === 'Только что';
+                    break;
+                case 'all':
+                default:
+                    show = true;
+                    break;
+            }
+            
+            item.style.display = show ? 'block' : 'none';
+        });
+        
+        // Update stats based on visible comments
+        updateVisibleCommentsStats();
+    }
+    
+    /**
+     * Update statistics for visible comments only
+     */
+    function updateVisibleCommentsStats() {
+        const visibleComments = document.querySelectorAll('.comment-item:not([style*="display: none"])');
+        const visibleReplies = document.querySelectorAll('.comment-item.reply:not([style*="display: none"])');
+        
+        document.getElementById('total-comments').textContent = visibleComments.length;
+        document.getElementById('total-replies').textContent = visibleReplies.length;
+    }
+    
+    /**
+     * Add search input to comments header
+     */
+    function addSearchToCommentsHeader() {
+        const commentsHeader = document.querySelector('#comments-content .comments-header');
+        if (commentsHeader) {
+            const searchContainer = document.createElement('div');
+            searchContainer.className = 'comments-search';
+            searchContainer.innerHTML = `
+                <input type="text" placeholder="Поиск по комментариям..." class="search-input" id="comments-search-input">
+                <button onclick="refreshComments()" class="btn-secondary" style="margin-left: 10px; padding: 8px 15px; font-size: 14px;">
+                    🔄 Обновить
+                </button>
+            `;
+            
+            commentsHeader.appendChild(searchContainer);
+            
+            // Add search functionality
+            const searchInput = document.getElementById('comments-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const query = this.value.trim();
+                    searchComments(query);
+                });
+            }
+        }
+    }
+    
+    /**
+     * Search through comments
+     */
+    window.searchComments = function(query) {
+        if (!query) {
+            // Show all comments
+            document.querySelectorAll('.comment-item').forEach(item => {
+                item.style.display = 'block';
+            });
+            return;
+        }
+        
+        const searchTerm = query.toLowerCase();
+        document.querySelectorAll('.comment-item').forEach(item => {
+            const text = item.querySelector('.comment-text').textContent.toLowerCase();
+            const author = item.querySelector('.comment-author').textContent.toLowerCase();
+            const video = item.querySelector('.video-link').textContent.toLowerCase();
+            
+            const matches = text.includes(searchTerm) || 
+                          author.includes(searchTerm) || 
+                          video.includes(searchTerm);
+            item.style.display = matches ? 'block' : 'none';
+        });
+    };
+    
+    /**
+     * Refresh all comments
+     */
+    window.refreshComments = function() {
+        commentsData.comments = [];
+        commentsData.currentOffset = 0;
+        commentsData.hasMore = false;
+        document.getElementById('load-more-container').style.display = 'none';
+        loadComments();
+    };
+    
+    /**
+     * Reply to a specific comment
+     */
+    window.replyToComment = function(commentId, videoId) {
+        // Navigate to the video page with comment focus
+        const videoUrl = `/video/${commentsData.comments.find(c => c.id === commentId)?.video_owner}__${videoId}/#comment-${commentId}`;
+        window.open(videoUrl, '_blank');
+    };
+    
+    // Make loadComments available globally for error retry
+    window.loadComments = loadComments;
+});    
 </script>
 {% endblock %}
         
