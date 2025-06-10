@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
 import os
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -999,3 +1001,335 @@ def update_video_analytics(video_id, video_owner, date=None):
     )
     
     return analytics
+
+
+class VideoNote(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='video_notes')
+    video_id = models.CharField(max_length=255)  # GCS video ID
+    video_owner = models.CharField(max_length=255)  # User ID владельца видео
+    video_title = models.CharField(max_length=500, blank=True)  # Для удобства
+    title = models.CharField(max_length=200)  # Название заметки
+    content = models.TextField(blank=True)  # Содержание заметки (опционально)
+    timestamp = models.IntegerField()  # Время в секундах
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'video_id']),
+            models.Index(fields=['user', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.title} - {self.user.username} ({self.format_timestamp()})"
+
+    def format_timestamp(self):
+        """Форматирует timestamp в формат MM:SS или HH:MM:SS"""
+        hours = self.timestamp // 3600
+        minutes = (self.timestamp % 3600) // 60
+        seconds = self.timestamp % 60
+        
+        if hours > 0:
+            return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        else:
+            return f"{minutes:02d}:{seconds:02d}"
+
+    @property
+    def video_url(self):
+        """Возвращает URL видео с таймкодом"""
+        return f"/video/{self.video_owner}__{self.video_id}/?t={self.timestamp}"
+    
+class NotificationType(models.TextChoices):
+    """Типы уведомлений"""
+    NEW_VIDEO = 'new_video', 'Новое видео'
+    NEW_MATERIAL = 'new_material', 'Новый материал'
+    COMMENT_REPLY = 'comment_reply', 'Ответ на комментарий'
+    COMMENT_LIKE = 'comment_like', 'Лайк на комментарий'
+    VIDEO_LIKE = 'video_like', 'Лайк на видео'
+    NEW_SUBSCRIBER = 'new_subscriber', 'Новый подписчик'
+    MENTION = 'mention', 'Упоминание'
+    SYSTEM = 'system', 'Системное уведомление'
+
+class Notification(models.Model):
+    """Модель для уведомлений"""
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    
+    # Тип уведомления
+    notification_type = models.CharField(max_length=20, choices=NotificationType.choices)
+    
+    # Основная информация
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    
+    # Связанные объекты (опционально)
+    from_user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='sent_notifications')
+    video_id = models.CharField(max_length=255, null=True, blank=True)
+    video_owner = models.CharField(max_length=255, null=True, blank=True)
+    material_id = models.CharField(max_length=255, null=True, blank=True)
+    comment_id = models.CharField(max_length=255, null=True, blank=True)
+    
+    # Дополнительные данные (JSON)
+    extra_data = models.JSONField(default=dict, blank=True)
+    
+    # Статус
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    
+    # Ссылка для перехода
+    action_url = models.CharField(max_length=500, null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Notification'
+        verbose_name_plural = 'Notifications'
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['user', 'is_read']),
+            models.Index(fields=['notification_type', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.title}"
+    
+    def mark_as_read(self):
+        """Отмечает уведомление как прочитанное"""
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=['is_read', 'read_at'])
+    
+    @property
+    def time_since_created(self):
+        """Возвращает время с момента создания в удобном формате"""
+        now = timezone.now()
+        diff = now - self.created_at
+        
+        if diff.seconds < 60:
+            return "только что"
+        elif diff.seconds < 3600:
+            minutes = diff.seconds // 60
+            return f"{minutes} мин назад"
+        elif diff.days == 0:
+            hours = diff.seconds // 3600
+            return f"{hours} ч назад"
+        elif diff.days == 1:
+            return "вчера"
+        elif diff.days < 7:
+            return f"{diff.days} дн назад"
+        elif diff.days < 30:
+            weeks = diff.days // 7
+            return f"{weeks} нед назад"
+        else:
+            return self.created_at.strftime("%d.%m.%Y")
+    
+    @classmethod
+    def get_unread_count(cls, user):
+        """Получает количество непрочитанных уведомлений для пользователя"""
+        return cls.objects.filter(user=user, is_read=False).count()
+    
+    @classmethod
+    def mark_all_as_read(cls, user):
+        """Отмечает все уведомления пользователя как прочитанные"""
+        return cls.objects.filter(user=user, is_read=False).update(
+            is_read=True,
+            read_at=timezone.now()
+        )
+
+class NotificationSettings(models.Model):
+    """Настройки уведомлений пользователя"""
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='notification_settings')
+    
+    # Настройки для разных типов уведомлений
+    new_videos_enabled = models.BooleanField(default=True)
+    new_materials_enabled = models.BooleanField(default=True)
+    comment_replies_enabled = models.BooleanField(default=True)
+    comment_likes_enabled = models.BooleanField(default=True)
+    video_likes_enabled = models.BooleanField(default=True)
+    new_subscribers_enabled = models.BooleanField(default=True)
+    mentions_enabled = models.BooleanField(default=True)
+    system_notifications_enabled = models.BooleanField(default=True)
+    
+    # Email уведомления
+    email_notifications_enabled = models.BooleanField(default=False)
+    email_frequency = models.CharField(
+        max_length=20,
+        choices=[
+            ('instant', 'Мгновенно'),
+            ('daily', 'Ежедневно'),
+            ('weekly', 'Еженедельно'),
+            ('never', 'Никогда'),
+        ],
+        default='never'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Notification Settings'
+        verbose_name_plural = 'Notification Settings'
+    
+    def __str__(self):
+        return f"Notification settings for {self.user.username}"
+    
+    def is_enabled_for_type(self, notification_type):
+        """Проверяет, включены ли уведомления данного типа"""
+        type_mapping = {
+            NotificationType.NEW_VIDEO: self.new_videos_enabled,
+            NotificationType.NEW_MATERIAL: self.new_materials_enabled,
+            NotificationType.COMMENT_REPLY: self.comment_replies_enabled,
+            NotificationType.COMMENT_LIKE: self.comment_likes_enabled,
+            NotificationType.VIDEO_LIKE: self.video_likes_enabled,
+            NotificationType.NEW_SUBSCRIBER: self.new_subscribers_enabled,
+            NotificationType.MENTION: self.mentions_enabled,
+            NotificationType.SYSTEM: self.system_notifications_enabled,
+        }
+        return type_mapping.get(notification_type, True)
+
+# Сигналы для автоматического создания настроек уведомлений
+@receiver(post_save, sender=User)
+def create_notification_settings(sender, instance, created, **kwargs):
+    """Создает настройки уведомлений для нового пользователя"""
+    if created:
+        NotificationSettings.objects.create(user=instance)
+        
+# Функции для создания уведомлений
+def create_notification(user, notification_type, title, message, **kwargs):
+    """
+    Универсальная функция для создания уведомлений
+    
+    Args:
+        user: Пользователь, которому отправляется уведомление
+        notification_type: Тип уведомления (из NotificationType)
+        title: Заголовок уведомления
+        message: Текст уведомления
+        **kwargs: Дополнительные параметры (from_user, video_id, action_url и т.д.)
+    """
+    # Проверяем настройки пользователя
+    settings, created = NotificationSettings.objects.get_or_create(user=user)
+    
+    if not settings.is_enabled_for_type(notification_type):
+        return None
+    
+    notification = Notification.objects.create(
+        user=user,
+        notification_type=notification_type,
+        title=title,
+        message=message,
+        **kwargs
+    )
+    
+    return notification
+
+def notify_new_video(video_owner, video_id, video_title):
+    """Уведомление о новом видео для подписчиков"""
+    from .models import Subscription
+    
+    subscribers = Subscription.objects.filter(channel_id=video_owner).select_related('subscriber')
+    
+    for subscription in subscribers:
+        create_notification(
+            user=subscription.subscriber,
+            notification_type=NotificationType.NEW_VIDEO,
+            title="Новое видео",
+            message=f"На канале появилось новое видео: {video_title}",
+            from_user=subscription.subscriber.objects.filter(username=video_owner.replace('@', '')).first(),
+            video_id=video_id,
+            video_owner=video_owner,
+            action_url=f"/video/{video_owner}__{video_id}/",
+            extra_data={'video_title': video_title}
+        )
+
+def notify_new_material(material_owner, material_id, material_title):
+    """Уведомление о новом материале для подписчиков"""
+    from .models import Subscription
+    
+    subscribers = Subscription.objects.filter(channel_id=material_owner).select_related('subscriber')
+    
+    for subscription in subscribers:
+        create_notification(
+            user=subscription.subscriber,
+            notification_type=NotificationType.NEW_MATERIAL,
+            title="Новый материал",
+            message=f"На канале появился новый материал: {material_title}",
+            from_user=subscription.subscriber.objects.filter(username=material_owner.replace('@', '')).first(),
+            material_id=material_id,
+            action_url=f"/library/material/{material_owner}__{material_id}/",
+            extra_data={'material_title': material_title}
+        )
+
+def notify_comment_reply(comment_owner, reply_author, video_id, video_owner, reply_text):
+    """Уведомление об ответе на комментарий"""
+    if comment_owner == reply_author:
+        return  # Не уведомляем о собственных ответах
+    
+    create_notification(
+        user=comment_owner,
+        notification_type=NotificationType.COMMENT_REPLY,
+        title="Ответ на комментарий",
+        message=f"{reply_author.profile.display_name or reply_author.username} ответил на ваш комментарий",
+        from_user=reply_author,
+        video_id=video_id,
+        video_owner=video_owner,
+        action_url=f"/video/{video_owner}__{video_id}/",
+        extra_data={'reply_text': reply_text[:100]}
+    )
+
+def notify_comment_like(comment_owner, liker, video_id, video_owner):
+    """Уведомление о лайке комментария"""
+    if comment_owner == liker:
+        return  # Не уведомляем о собственных лайках
+    
+    create_notification(
+        user=comment_owner,
+        notification_type=NotificationType.COMMENT_LIKE,
+        title="Лайк на комментарий",
+        message=f"{liker.profile.display_name or liker.username} оценил ваш комментарий",
+        from_user=liker,
+        video_id=video_id,
+        video_owner=video_owner,
+        action_url=f"/video/{video_owner}__{video_id}/"
+    )
+
+def notify_video_like(video_owner_username, liker, video_id, video_title):
+    """Уведомление о лайке видео"""
+    try:
+        video_owner = User.objects.get(username=video_owner_username.replace('@', ''))
+        if video_owner == liker:
+            return  # Не уведомляем о собственных лайках
+        
+        create_notification(
+            user=video_owner,
+            notification_type=NotificationType.VIDEO_LIKE,
+            title="Лайк на видео",
+            message=f"{liker.profile.display_name or liker.username} оценил ваше видео: {video_title}",
+            from_user=liker,
+            video_id=video_id,
+            video_owner=video_owner_username,
+            action_url=f"/video/{video_owner_username}__{video_id}/",
+            extra_data={'video_title': video_title}
+        )
+    except User.DoesNotExist:
+        pass
+
+def notify_new_subscriber(channel_owner_username, subscriber):
+    """Уведомление о новом подписчике"""
+    try:
+        channel_owner = User.objects.get(username=channel_owner_username.replace('@', ''))
+        
+        create_notification(
+            user=channel_owner,
+            notification_type=NotificationType.NEW_SUBSCRIBER,
+            title="Новый подписчик",
+            message=f"{subscriber.profile.display_name or subscriber.username} подписался на ваш канал",
+            from_user=subscriber,
+            action_url=f"/channel/{channel_owner_username}/",
+            extra_data={'subscriber_name': subscriber.profile.display_name or subscriber.username}
+        )
+    except User.DoesNotExist:
+        pass

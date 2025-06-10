@@ -1,7 +1,7 @@
 # В main/admin.py
 from django.contrib import admin
 from .models import Category, Channel, Video, UserProfile, ExpertiseArea, Subscription
-
+from .models import VideoNote
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'is_author', 'author_application_pending', 'date_joined')
     list_filter = ('is_author', 'author_application_pending')
@@ -38,3 +38,40 @@ admin.site.register(Category)
 admin.site.register(Channel)
 admin.site.register(Video)
 admin.site.register(Subscription, SubscriptionAdmin)
+
+@admin.register(VideoNote)
+class VideoNoteAdmin(admin.ModelAdmin):
+    list_display = ('title', 'user', 'video_title', 'formatted_timestamp', 'created_at')
+    list_filter = ('created_at', 'updated_at')
+    search_fields = ('title', 'content', 'video_title', 'user__username')
+    readonly_fields = ('created_at', 'updated_at', 'formatted_timestamp', 'video_url')
+    
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('title', 'content', 'user')
+        }),
+        ('Видео', {
+            'fields': ('video_id', 'video_owner', 'video_title', 'timestamp', 'formatted_timestamp', 'video_url')
+        }),
+        ('Даты', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def formatted_timestamp(self, obj):
+        return obj.format_timestamp()
+    formatted_timestamp.short_description = 'Время'
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
+    
+    def has_change_permission(self, request, obj=None):
+        if obj is not None:
+            return obj.user == request.user or request.user.is_superuser
+        return True
+    
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None:
+            return obj.user == request.user or request.user.is_superuser
+        return True

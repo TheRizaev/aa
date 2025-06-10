@@ -12,6 +12,11 @@ import uuid
 import logging
 logger = logging.getLogger(__name__)
 
+from .notification_views import (
+    create_video_notification,
+    create_comment_reply_notification
+)
+
 from .s3_storage import (
     create_user_folder_structure,
     upload_video,
@@ -144,7 +149,16 @@ def upload_video_to_gcs(request):
                 video_metadata['video_db_id'] = video_obj.id
             except Exception as db_err:
                 logger.error(f"Error creating database record: {db_err}")
-        
+                
+        if video_id and title:
+            # Создаем уведомления для подписчиков о новом видео
+            try:
+                create_video_notification(user_id, video_id, title)
+                logger.info(f"Created notifications for new video: {video_id}")
+            except Exception as notification_error:
+                # Не прерываем загрузку видео из-за ошибки уведомлений
+                logger.error(f"Failed to create video notifications: {notification_error}")
+                
         return JsonResponse({
             'success': True,
             'video_id': video_id,
@@ -976,12 +990,47 @@ def add_reply(request):
             return JsonResponse({'success': False, 'error': 'Видео не найдено - не удалось определить владельца'}, status=404)
             
         logger.info(f"Final video owner: {video_owner_id}")
-        from .s3_storage import add_reply as s3_add_reply, get_user_profile_from_gcs
+        from .s3_storage import add_reply as s3_add_reply, get_user_profile_from_gcs, get_video_comments
+        
         # Получаем отображаемое имя из профиля пользователя
         display_name = user.profile.display_name if hasattr(user, 'profile') and user.profile.display_name else username
         
         user_profile = get_user_profile_from_gcs(username)
         avatar_url = user_profile.get('avatar_url', None) if user_profile else None
+        
+        # Получаем информацию о комментарии, на который отвечаем
+        try:
+            comments_data = get_video_comments(video_owner_id, actual_video_id)
+            original_comment = None
+            for comment in comments_data.get('comments', []):
+                if comment.get('id') == comment_id:
+                    original_comment = comment
+                    break
+            
+            # Получаем автора оригинального комментария для уведомления
+            if original_comment and original_comment.get('user_id'):
+                comment_author_username = original_comment.get('user_id')
+                try:
+                    from django.contrib.auth.models import User
+                    comment_author = User.objects.get(username=comment_author_username.replace('@', ''))
+                    
+                    # Создаем уведомление об ответе на комментарий
+                    create_comment_reply_notification(
+                        comment_owner=comment_author,
+                        reply_author=user,
+                        video_id=actual_video_id,
+                        video_owner=video_owner_id,
+                        reply_text=text
+                    )
+                    logger.info(f"Created comment reply notification for {comment_author_username}")
+                    
+                except User.DoesNotExist:
+                    logger.warning(f"User not found for comment reply notification: {comment_author_username}")
+                except Exception as notif_error:
+                    logger.error(f"Error creating comment reply notification: {notif_error}")
+                    
+        except Exception as comment_error:
+            logger.error(f"Error processing comment for notification: {comment_error}")
         
         # Add reply
         success = s3_add_reply(
@@ -1002,13 +1051,13 @@ def add_reply(request):
         import uuid
         from datetime import datetime
         reply_data = {
-            'id': str(uuid.uuid4()),  # Generate random ID for now
+            'id': str(uuid.uuid4()),
             'user_id': username,
             'display_name': display_name,
             'text': text,
             'date': datetime.now().isoformat(),
             'likes': 0,
-            'avatar_url': avatar_url  # Добавляем URL аватара
+            'avatar_url': avatar_url
         }
         
         logger.info(f"Reply successfully added")

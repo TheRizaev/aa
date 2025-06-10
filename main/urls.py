@@ -4,12 +4,14 @@ from . import gcs_views
 from . import ai_views
 from . import material_views
 from . import analytics_views
+from . import notification_views
 from .voice_assistant import voice_chat, start_voice_recognition, synthesize_text
 from django.conf import settings
 
 urlpatterns = [
     path('', views.index, name='index'),  # Main page
     path('video/<str:video_id>/', views.video_detail, name='video_detail_gcs'),  # Video detail page
+    path('api/toggle-comment-like/', views.toggle_comment_like, name='toggle_comment_like'),
     
     # Updated channel URL pattern to handle username with @ prefix
     path('channel/<str:username>/', views.channel_view, name='channel'),  # Channel/Author page
@@ -23,7 +25,9 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),  # Logout handler
     path('profile/', views.profile_view, name='profile'),  # User profile
     path('profile/settings/', views.profile_settings_view, name='profile_settings'),  # Profile settings
-
+    path('notes/', views.notes_view, name='notes'),  # User notes page
+    # Notification settings page
+    path('notifications/settings/', notification_views.notification_settings_view, name='notification_settings'),
     # Новые страницы для лайков и истории
     path('liked-videos/', views.liked_videos, name='liked_videos'),  # Понравившиеся видео
     path('watch-history/', views.watch_history, name='watch_history'),  # История просмотров
@@ -70,6 +74,14 @@ urlpatterns = [
     path('api/start-voice-recognition/', start_voice_recognition, name='start_voice_recognition'),
     path('api/synthesize-text/', synthesize_text, name='synthesize_text'),
     
+     # Notification API URLs
+    path('api/notifications/', notification_views.get_notifications, name='get_notifications'),
+    path('api/notifications/unread-count/', notification_views.get_unread_count, name='get_unread_count'),
+    path('api/notifications/mark-read/', notification_views.mark_notification_as_read, name='mark_notification_as_read'),
+    path('api/notifications/mark-all-read/', notification_views.mark_all_notifications_as_read, name='mark_all_notifications_as_read'),
+    path('api/notifications/delete/<uuid:notification_id>/', notification_views.delete_notification, name='delete_notification'),
+    path('api/notifications/settings/', notification_views.update_notification_settings, name='update_notification_settings'),
+    
     path('library/', material_views.library_view, name='library'),
     path('library/my-materials/', material_views.my_materials_view, name='my_materials'),
     path('library/material/<str:material_id>/', material_views.material_detail_view, name='material_detail'),
@@ -87,6 +99,13 @@ urlpatterns = [
     path('api/list-user-materials/<str:username>/', material_views.list_user_materials_api, name='list_user_materials_api_user'),
     path('api/download-material/<str:material_id>/', material_views.download_material, name='download_material'),
     path('api/delete-material/<str:material_id>/', material_views.delete_material_view, name='delete_material'),
+    
+    # Video Notes API URLs
+    path('api/add-note/', views.add_video_note, name='add_video_note'),
+    path('api/get-video-notes/', views.get_video_notes, name='get_video_notes'),
+    path('api/get-all-notes/', views.get_all_user_notes, name='get_all_user_notes'),
+    path('api/delete-note/<int:note_id>/', views.delete_video_note, name='delete_video_note'),
+    path('api/update-note/<int:note_id>/', views.update_video_note, name='update_video_note'),
 ]
 
 if settings.DEBUG:

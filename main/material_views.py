@@ -18,6 +18,8 @@ import uuid
 import json
 import logging
 
+from .notification_views import create_material_notification
+
 logger = logging.getLogger(__name__)
 
 def library_view(request):
@@ -170,7 +172,7 @@ def my_materials_view(request):
 @login_required
 @require_http_methods(["POST"])
 def upload_material_view(request):
-    """Загрузка материала в студии"""
+    """Загрузка материала в студии - ОБНОВЛЕНО с уведомлениями"""
     try:
         # Получаем файлы и данные из запроса
         material_file = request.FILES.get('material_file')
@@ -229,6 +231,14 @@ def upload_material_view(request):
         # Удаляем временный файл
         if os.path.exists(temp_material_path):
             os.remove(temp_material_path)
+        
+        # Создаем уведомления для подписчиков о новом материале
+        try:
+            create_material_notification(user_id, material_id, title)
+            logger.info(f"Created notifications for new material: {material_id}")
+        except Exception as notification_error:
+            # Не прерываем загрузку материала из-за ошибки уведомлений
+            logger.error(f"Failed to create material notifications: {notification_error}")
         
         # Получаем обновленные метаданные
         material_metadata = get_material_metadata(user_id, material_id)

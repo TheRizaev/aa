@@ -1,6 +1,6 @@
 
 from django.shortcuts import render, redirect
-from .models import VideoLike, Category, Subscription, VideoView
+from .models import VideoLike, Category, Subscription, VideoView, VideoNote
 import random
 import openai
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
@@ -30,6 +30,15 @@ import datetime
 import requests
 import json
 from django.http import JsonResponse
+
+from .notification_views import (
+    create_video_notification, 
+    create_material_notification, 
+    create_subscription_notification,
+    create_like_notification,
+    create_comment_reply_notification
+)
+
 logger = logging.getLogger(__name__)
 
 def custom_page_not_found(request, exception):
@@ -1475,14 +1484,14 @@ def profile_settings_view(request):
 @require_http_methods(["POST"])
 def toggle_subscription(request):
     """
-    API endpoint to toggle subscription to a channel
+    API endpoint to toggle subscription to a channel - ОБНОВЛЕНО с уведомлениями
     """
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid method'}, status=405)
 
     try:
         channel_id = request.POST.get('channel_id')
-        action = request.POST.get('action', 'toggle')  # toggle, subscribe, unsubscribe
+        action = request.POST.get('action', 'toggle')
 
         if not channel_id:
             return JsonResponse({'success': False, 'error': 'Missing channel_id'}, status=400)
@@ -1509,6 +1518,10 @@ def toggle_subscription(request):
                     channel_id=channel_id
                 )
                 is_subscribed = True
+                
+                # Создаем уведомление о новом подписчике
+                create_subscription_notification(channel_id, request.user)
+                
         elif action == 'subscribe' and not subscription_exists:
             # Subscribe only if not already subscribed
             Subscription.objects.create(
@@ -1516,6 +1529,10 @@ def toggle_subscription(request):
                 channel_id=channel_id
             )
             is_subscribed = True
+            
+            # Создаем уведомление о новом подписчике
+            create_subscription_notification(channel_id, request.user)
+            
         elif action == 'unsubscribe' and subscription_exists:
             # Unsubscribe only if currently subscribed
             Subscription.objects.filter(
@@ -1617,8 +1634,7 @@ def get_subscriptions(request):
 
 def base_context_processor(request):
     """
-    Context processor for adding profile information and subscription count for base.html
-    Register this in settings.py in TEMPLATES['OPTIONS']['context_processors']
+    Context processor for adding profile information and notification count for base.html
     """
     context = {}
     
@@ -1631,6 +1647,15 @@ def base_context_processor(request):
                 context['user_avatar_url'] = gcs_profile['avatar_url']
                 
             context['subscription_count'] = Subscription.objects.filter(subscriber=request.user).count()
+            
+            # Добавляем количество непрочитанных уведомлений
+            try:
+                from .models import Notification
+                context['unread_notifications_count'] = Notification.get_unread_count(request.user)
+            except Exception as e:
+                logger.error(f"Error loading unread notifications count: {e}")
+                context['unread_notifications_count'] = 0
+                
         except Exception as e:
             logger.error(f"Error loading user profile for context: {e}")
     
@@ -1644,6 +1669,7 @@ def search_page(request):
 
 @login_required
 def toggle_video_like(request):
+    """ОБНОВЛЕНО с уведомлениями"""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid method'}, status=405)
 
@@ -1679,6 +1705,7 @@ def toggle_video_like(request):
                     existing_like.delete()
                     is_liked = False
                     is_disliked = False
+                    # Не создаем уведомление при снятии лайка
                 else:
                     # User is changing dislike to like
                     metadata['likes'] = int(metadata.get('likes', 0)) + 1
@@ -1687,6 +1714,10 @@ def toggle_video_like(request):
                     existing_like.save()
                     is_liked = True
                     is_disliked = False
+                    
+                    # Создаем уведомление о лайке
+                    create_like_notification(user_id, request.user, video_id, metadata.get('title', 'Видео'))
+                    
             except VideoLike.DoesNotExist:
                 # New like
                 metadata['likes'] = int(metadata.get('likes', 0)) + 1
@@ -1698,29 +1729,13 @@ def toggle_video_like(request):
                 )
                 is_liked = True
                 is_disliked = False
+                
+                # Создаем уведомление о лайке
+                create_like_notification(user_id, request.user, video_id, metadata.get('title', 'Видео'))
 
             # Update metadata in S3
-            bucket = get_bucket()
-            if not bucket:
-                return JsonResponse({'success': False, 'error': 'Failed to access storage'}, status=500)
-
-            client = bucket['client']
-            bucket_name = bucket['name']
-            metadata_path = f"{user_id}/metadata/{video_id}.json"
-            
-            # S3-compatible way to check if metadata file exists
-            try:
-                client.head_object(Bucket=bucket_name, Key=metadata_path)
-            except Exception:
-                return JsonResponse({'success': False, 'error': 'Metadata not found'}, status=404)
-            
-            # S3-compatible way to update metadata
-            client.put_object(
-                Bucket=bucket_name,
-                Key=metadata_path,
-                Body=json.dumps(metadata, indent=2),
-                ContentType='application/json'
-            )
+            if not update_video_metadata(user_id, video_id, metadata):
+                return JsonResponse({'success': False, 'error': 'Failed to update metadata'}, status=500)
 
         return JsonResponse({
             'success': True,
@@ -1732,8 +1747,6 @@ def toggle_video_like(request):
 
     except Exception as e:
         logger.error(f"Error toggling like: {str(e)}")
-        import traceback
-        logger.error(traceback.format_exc())
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
@@ -2281,3 +2294,363 @@ def kronik_ai_chat_legacy(request):
         return JsonResponse({
             'error': 'Произошла неожиданная ошибка'
         }, status=500)
+        
+@login_required
+@require_http_methods(["POST"])
+def add_video_note(request):
+    """
+    API endpoint для добавления заметки к видео
+    """
+    try:
+        data = json.loads(request.body)
+        
+        video_id = data.get('video_id')
+        video_owner = data.get('video_owner')
+        video_title = data.get('video_title', '')
+        title = data.get('title', '').strip()
+        content = data.get('content', '').strip()
+        timestamp = data.get('timestamp', 0)
+        
+        # Валидация
+        if not video_id or not video_owner:
+            return JsonResponse({'success': False, 'error': 'Не указан ID видео или владелец'}, status=400)
+        
+        if not title:
+            return JsonResponse({'success': False, 'error': 'Название заметки обязательно'}, status=400)
+        
+        try:
+            timestamp = int(float(timestamp))
+            if timestamp < 0:
+                timestamp = 0
+        except (ValueError, TypeError):
+            timestamp = 0
+        
+        # Создаем заметку
+        note = VideoNote.objects.create(
+            user=request.user,
+            video_id=video_id,
+            video_owner=video_owner,
+            video_title=video_title,
+            title=title,
+            content=content,
+            timestamp=timestamp
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'note': {
+                'id': note.id,
+                'title': note.title,
+                'content': note.content,
+                'timestamp': note.timestamp,
+                'formatted_timestamp': note.format_timestamp(),
+                'created_at': note.created_at.isoformat(),
+                'video_url': note.video_url
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Некорректный JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error adding video note: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@require_http_methods(["GET"])
+def get_video_notes(request):
+    """
+    API endpoint для получения заметок пользователя к конкретному видео
+    """
+    try:
+        video_id = request.GET.get('video_id')
+        video_owner = request.GET.get('video_owner')
+        
+        if not video_id or not video_owner:
+            return JsonResponse({'success': False, 'error': 'Не указан ID видео или владелец'}, status=400)
+        
+        notes = VideoNote.objects.filter(
+            user=request.user,
+            video_id=video_id,
+            video_owner=video_owner
+        ).order_by('timestamp')
+        
+        notes_data = []
+        for note in notes:
+            notes_data.append({
+                'id': note.id,
+                'title': note.title,
+                'content': note.content,
+                'timestamp': note.timestamp,
+                'formatted_timestamp': note.format_timestamp(),
+                'created_at': note.created_at.isoformat(),
+                'video_url': note.video_url
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'notes': notes_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting video notes: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@require_http_methods(["GET"])
+def get_all_user_notes(request):
+    """
+    API endpoint для получения всех заметок пользователя
+    """
+    try:
+        # Parse pagination parameters
+        try:
+            offset = int(request.GET.get('offset', 0))
+        except (ValueError, TypeError):
+            offset = 0
+            
+        try:
+            limit = int(request.GET.get('limit', 20))
+        except (ValueError, TypeError):
+            limit = 20
+        
+        # Limit maximum results per request
+        limit = min(limit, 50)
+        
+        # Get all notes for user
+        notes = VideoNote.objects.filter(user=request.user).order_by('-created_at')
+        total_notes = notes.count()
+        
+        # Apply pagination
+        paginated_notes = notes[offset:offset + limit]
+        
+        notes_data = []
+        for note in paginated_notes:
+            notes_data.append({
+                'id': note.id,
+                'title': note.title,
+                'content': note.content,
+                'timestamp': note.timestamp,
+                'formatted_timestamp': note.format_timestamp(),
+                'video_id': note.video_id,
+                'video_owner': note.video_owner,
+                'video_title': note.video_title,
+                'created_at': note.created_at.isoformat(),
+                'video_url': note.video_url
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'notes': notes_data,
+            'total': total_notes,
+            'has_more': offset + limit < total_notes,
+            'next_offset': offset + limit if offset + limit < total_notes else None
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting all user notes: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@require_http_methods(["DELETE"])
+def delete_video_note(request, note_id):
+    """
+    API endpoint для удаления заметки
+    """
+    try:
+        note = VideoNote.objects.get(id=note_id, user=request.user)
+        note.delete()
+        
+        return JsonResponse({'success': True})
+        
+    except VideoNote.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Заметка не найдена'}, status=404)
+    except Exception as e:
+        logger.error(f"Error deleting video note: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@require_http_methods(["PUT"])
+def update_video_note(request, note_id):
+    """
+    API endpoint для обновления заметки
+    """
+    try:
+        data = json.loads(request.body)
+        
+        note = VideoNote.objects.get(id=note_id, user=request.user)
+        
+        title = data.get('title', '').strip()
+        content = data.get('content', '').strip()
+        timestamp = data.get('timestamp')
+        
+        if not title:
+            return JsonResponse({'success': False, 'error': 'Название заметки обязательно'}, status=400)
+        
+        note.title = title
+        note.content = content
+        
+        if timestamp is not None:
+            try:
+                timestamp = int(float(timestamp))
+                if timestamp >= 0:
+                    note.timestamp = timestamp
+            except (ValueError, TypeError):
+                pass
+        
+        note.save()
+        
+        return JsonResponse({
+            'success': True,
+            'note': {
+                'id': note.id,
+                'title': note.title,
+                'content': note.content,
+                'timestamp': note.timestamp,
+                'formatted_timestamp': note.format_timestamp(),
+                'updated_at': note.updated_at.isoformat(),
+                'video_url': note.video_url
+            }
+        })
+        
+    except VideoNote.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Заметка не найдена'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Некорректный JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error updating video note: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+def notes_view(request):
+    """
+    Страница со всеми заметками пользователя
+    """
+    return render(request, 'main/notes.html', {
+        'page_title': 'Мои заметки'
+    })
+    
+@login_required
+@require_http_methods(["POST"])
+def toggle_comment_like(request):
+    """
+    API endpoint to toggle like on a comment or reply
+    """
+    try:
+        comment_id = request.POST.get('comment_id')
+        video_id = request.POST.get('video_id')
+        is_reply = request.POST.get('is_reply', 'false').lower() == 'true'
+
+        if not comment_id or not video_id:
+            return JsonResponse({'success': False, 'error': 'Missing comment_id or video_id'}, status=400)
+
+        # Parse video_id to get user_id and actual video_id
+        if '__' in video_id:
+            user_id, actual_video_id = video_id.split('__', 1)
+        else:
+            return JsonResponse({'success': False, 'error': 'Invalid video_id format'}, status=400)
+
+        # Get comments data from S3
+        comments_data = get_video_comments(user_id, actual_video_id)
+        
+        if not comments_data:
+            return JsonResponse({'success': False, 'error': 'Comments not found'}, status=404)
+
+        # Find and update the comment/reply
+        updated = False
+        new_like_count = 0
+        is_liked = False
+
+        # Create a unique like key for this user and comment
+        like_key = f"{request.user.username}_{comment_id}"
+
+        for comment in comments_data.get('comments', []):
+            if comment.get('id') == comment_id and not is_reply:
+                # Handle main comment like
+                likes_list = comment.get('likes_users', [])
+                
+                if like_key in likes_list:
+                    # Remove like
+                    likes_list.remove(like_key)
+                    is_liked = False
+                else:
+                    # Add like
+                    likes_list.append(like_key)
+                    is_liked = True
+                
+                comment['likes_users'] = likes_list
+                comment['likes'] = len(likes_list)
+                new_like_count = comment['likes']
+                updated = True
+                break
+            
+            # Check replies if it's a reply
+            elif is_reply:
+                for reply in comment.get('replies', []):
+                    if reply.get('id') == comment_id:
+                        likes_list = reply.get('likes_users', [])
+                        
+                        if like_key in likes_list:
+                            # Remove like
+                            likes_list.remove(like_key)
+                            is_liked = False
+                        else:
+                            # Add like
+                            likes_list.append(like_key)
+                            is_liked = True
+                        
+                        reply['likes_users'] = likes_list
+                        reply['likes'] = len(likes_list)
+                        new_like_count = reply['likes']
+                        updated = True
+                        break
+                
+                if updated:
+                    break
+
+        if not updated:
+            return JsonResponse({'success': False, 'error': 'Comment not found'}, status=404)
+
+        # Save updated comments back to S3
+        success = save_video_comments(user_id, actual_video_id, comments_data)
+        
+        if not success:
+            return JsonResponse({'success': False, 'error': 'Failed to save comment update'}, status=500)
+
+        return JsonResponse({
+            'success': True,
+            'likes': new_like_count,
+            'is_liked': is_liked
+        })
+
+    except Exception as e:
+        logger.error(f"Error toggling comment like: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+def save_video_comments(user_id, video_id, comments_data):
+    """
+    Save updated comments data back to S3
+    """
+    try:
+        bucket = get_bucket(BUCKET_NAME)
+        if not bucket:
+            return False
+            
+        client = bucket['client']
+        bucket_name = bucket['name']
+        comments_path = f"{user_id}/comments/{video_id}_comments.json"
+        
+        # Save updated comments
+        client.put_object(
+            Bucket=bucket_name,
+            Key=comments_path,
+            Body=json.dumps(comments_data, indent=2),
+            ContentType='application/json'
+        )
+        
+        logger.info(f"Comments saved successfully for video {video_id}")
+        return True
+    except Exception as e:
+        logger.error(f"Error saving comments: {e}")
+        return False
