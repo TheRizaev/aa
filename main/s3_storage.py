@@ -10,7 +10,7 @@ import ffmpeg
 
 # Set up logging
 logger = logging.getLogger(__name__)
-BUCKET_NAME = "kronik-portage"  # Keep original bucket name for compatibility
+BUCKET_NAME = "kronik-s3"  # Keep original bucket name for compatibility
 
 def init_s3_client():
     """Initialize S3 client with Cloudpard credentials"""
@@ -18,8 +18,8 @@ def init_s3_client():
         client = boto3.client(
             's3',
             endpoint_url='https://storage.cloupard.uz',
-            aws_access_key_id='RQCV6OIXPPW3CIUPD41M',
-            aws_secret_access_key='41rvd+2JvErImMVU529tPICoLNe6O1NGrrKzWvzv'
+            aws_access_key_id='LN72L6HZQO2W0VAAGV1F',
+            aws_secret_access_key='XVtmbeO86Ey9xV65KA1Ynkdznn9GK7WxhpWiYKXc'
         )
         return client
     except Exception as e:
