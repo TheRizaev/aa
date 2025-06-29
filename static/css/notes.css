@@ -1,0 +1,631 @@
+.video-notes-context-menu {
+    position: fixed;
+    background: var(--light-bg);
+    border: 1px solid rgba(37, 39, 159, 0.2);
+    border-radius: 12px;
+    padding: 8px 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    min-width: 200px;
+    display: none;
+    backdrop-filter: blur(10px);
+}
+
+.dark-theme .video-notes-context-menu {
+    background: var(--medium-bg);
+    border-color: rgba(159, 37, 88, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Анимация появления контекстного меню */
+.video-notes-context-menu.show {
+    display: block;
+    animation: contextMenuFadeIn 0.2s ease-out;
+}
+
+@keyframes contextMenuFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Индикатор заметок на прогресс-баре */
+.progress-container .note-indicators {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.note-indicator {
+    position: absolute;
+    top: -2px;
+    width: 3px;
+    height: calc(100% + 4px);
+    background: linear-gradient(135deg, var(--accent-color), #1f2f4a);
+    border-radius: 2px;
+    pointer-events: all;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(37, 39, 159, 0.3);
+}
+
+.note-indicator:hover {
+    transform: scaleX(1.5);
+    background: linear-gradient(135deg, #1f2f4a, var(--accent-color));
+    box-shadow: 0 4px 8px rgba(37, 39, 159, 0.5);
+}
+
+.note-indicator::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.note-indicator:hover::after {
+    opacity: 1;
+}
+
+/* Tooltip для индикаторов заметок */
+.note-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    margin-bottom: 8px;
+    z-index: 10001;
+}
+
+.note-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+.note-indicator:hover .note-tooltip {
+    opacity: 1;
+}
+
+/* Стили для страницы заметок */
+.notes-page-header {
+    background: linear-gradient(135deg, rgba(37, 39, 159, 0.1), rgba(159, 37, 88, 0.05));
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.notes-page-header h1 {
+    background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.notes-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: rgba(37, 39, 159, 0.05);
+    border-radius: 20px;
+    margin: 40px 0;
+}
+
+.notes-empty-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    opacity: 0.5;
+}
+
+.notes-empty-state h3 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.notes-empty-state p {
+    color: var(--gray-color);
+    font-size: 1.1rem;
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* Карточки заметок с улучшенным дизайном */
+.note-card-enhanced {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(37, 39, 159, 0.2);
+    border-radius: 20px;
+    padding: 25px;
+    transition: all 0.3s ease;
+    position: relative;
+    backdrop-filter: blur(10px);
+}
+
+.dark-theme .note-card-enhanced {
+    background: linear-gradient(135deg, rgba(11, 25, 29, 0.8), rgba(11, 25, 29, 0.6));
+    border-color: rgba(37, 39, 159, 0.3);
+}
+
+.note-card-enhanced:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 35px rgba(37, 39, 159, 0.2);
+    border-color: var(--accent-color);
+}
+
+.note-card-enhanced::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+    border-radius: 20px 20px 0 0;
+}
+
+/* Анимации для загрузки заметок */
+.notes-loading-skeleton {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.skeleton-card {
+    background: rgba(37, 39, 159, 0.1);
+    border-radius: 15px;
+    padding: 20px;
+    animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-title {
+    height: 20px;
+    background: rgba(37, 39, 159, 0.2);
+    border-radius: 4px;
+    margin-bottom: 15px;
+    width: 70%;
+}
+
+.skeleton-content {
+    height: 60px;
+    background: rgba(37, 39, 159, 0.15);
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.skeleton-meta {
+    height: 16px;
+    background: rgba(37, 39, 159, 0.1);
+    border-radius: 4px;
+    width: 50%;
+}
+
+@keyframes skeletonPulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Поиск и фильтры для заметок */
+.notes-search-enhanced {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.notes-search-enhanced input {
+    padding-left: 50px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(37, 39, 159, 0.2);
+    border-radius: 30px;
+    transition: all 0.3s ease;
+}
+
+.notes-search-enhanced input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(37, 39, 159, 0.1);
+}
+
+.notes-search-enhanced::before {
+    content: '🔍';
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    z-index: 1;
+}
+
+/* Статистика заметок */
+.notes-stats-bar {
+    display: flex;
+    justify-content: space-around;
+    background: rgba(37, 39, 159, 0.1);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--accent-color);
+    display: block;
+}
+
+.stat-label {
+    color: var(--gray-color);
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+/* Адаптивные улучшения */
+@media (max-width: 768px) {
+    .notes-page-header h1 {
+        font-size: 2rem;
+    }
+    
+    .notes-stats-bar {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .note-card-enhanced {
+        padding: 20px;
+        border-radius: 15px;
+    }
+    
+    .notes-search-enhanced::before {
+        left: 15px;
+    }
+    
+    .notes-search-enhanced input {
+        padding-left: 45px;
+    }
+}
+
+/* Темная тема для заметок */
+.dark-theme .notes-page-header {
+    background: linear-gradient(135deg, rgba(37, 39, 159, 0.2), rgba(159, 37, 88, 0.1));
+}
+
+.dark-theme .notes-stats-bar {
+    background: rgba(37, 39, 159, 0.2);
+}
+
+.dark-theme .notes-empty-state {
+    background: rgba(37, 39, 159, 0.15);
+}
+
+.dark-theme .skeleton-card {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dark-theme .skeleton-title {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dark-theme .skeleton-content {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dark-theme .skeleton-meta {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Специальные эффекты для заметок */
+.note-glow-effect {
+    position: relative;
+    overflow: hidden;
+}
+
+.note-glow-effect::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(37, 39, 159, 0.1), transparent);
+    transform: rotate(45deg);
+    animation: noteGlow 3s linear infinite;
+    opacity: 0;
+}
+
+.note-glow-effect:hover::after {
+    opacity: 1;
+}
+
+@keyframes noteGlow {
+    0% {
+        transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+        transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+}
+
+/* Кнопка быстрого добавления заметки */
+.quick-note-fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--accent-color), #1f2f4a);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(37, 39, 159, 0.3);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    display: none; /* Показывается только на страницах видео */
+}
+
+.quick-note-fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 30px rgba(37, 39, 159, 0.5);
+}
+
+.quick-note-fab.visible {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fabSlideIn 0.3s ease-out;
+}
+
+@keyframes fabSlideIn {
+    from {
+        transform: translateY(100px) scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Улучшенная типографика для заметок */
+.note-title-fancy {
+    background: linear-gradient(135deg, var(--text-light), var(--accent-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.note-content-formatted {
+    line-height: 1.6;
+    color: var(--gray-color);
+}
+
+.note-content-formatted p {
+    margin-bottom: 12px;
+}
+
+.note-content-formatted p:last-child {
+    margin-bottom: 0;
+}
+
+/* Теги и метки для заметок */
+.note-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 15px;
+}
+
+.note-tag {
+    background: rgba(37, 39, 159, 0.1);
+    color: var(--accent-color);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid rgba(37, 39, 159, 0.2);
+}
+
+.dark-theme .note-tag {
+    background: rgba(37, 39, 159, 0.2);
+    border-color: rgba(37, 39, 159, 0.3);
+}
+
+/* Контекстные действия для заметок */
+.note-context-actions {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.note-card:hover .note-context-actions {
+    opacity: 1;
+}
+
+.note-action-menu {
+    background: var(--light-bg);
+    border: 1px solid rgba(37, 39, 159, 0.2);
+    border-radius: 8px;
+    padding: 4px 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 120px;
+    z-index: 100;
+    display: none;
+}
+
+.dark-theme .note-action-menu {
+    background: var(--medium-bg);
+    border-color: rgba(37, 39, 159, 0.3);
+}
+
+.note-action-menu.show {
+    display: block;
+    animation: contextMenuFadeIn 0.15s ease-out;
+}
+
+.note-action-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-dark);
+    transition: background 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dark-theme .note-action-item {
+    color: var(--text-light);
+}
+
+.note-action-item:hover {
+    background: rgba(37, 39, 159, 0.1);
+}
+
+.note-action-item svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Группировка заметок по видео */
+.notes-group {
+    margin-bottom: 40px;
+}
+
+.notes-group-header {
+    display: flex;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 2px solid rgba(37, 39, 159, 0.1);
+    margin-bottom: 20px;
+}
+
+.notes-group-video-thumb {
+    width: 60px;
+    height: 34px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-right: 15px;
+    background: var(--gray-color);
+}
+
+.notes-group-video-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.notes-group-info h3 {
+    color: var(--text-light);
+    font-size: 1.1rem;
+    margin: 0 0 5px 0;
+}
+
+.notes-group-meta {
+    color: var(--gray-color);
+    font-size: 0.9rem;
+}
+
+.notes-group-notes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+/* Экспорт заметок */
+.notes-export-button {
+    background: linear-gradient(135deg, var(--accent-color), #1f2f4a);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.notes-export-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(37, 39, 159, 0.3);
+}
+
+/* Мобильные улучшения */
+@media (max-width: 480px) {
+    .quick-note-fab {
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+    
+    .notes-group-notes {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .notes-group-header {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+    }
+    
+    .notes-group-video-thumb {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    
+    .note-context-actions {
+        position: static;
+        opacity: 1;
+        margin-top: 15px;
+    }
+}

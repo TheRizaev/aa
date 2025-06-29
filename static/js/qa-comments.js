@@ -1,6 +1,6 @@
 /**
  * Q&A and Comments System for Video Platform
- * This file handles all the functionality related to the Q&A section on video pages
+ * Complete rewrite with proper like functionality and mention handling
  */
 
 // Initialize when the DOM is fully loaded
@@ -20,6 +20,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if user is authenticated
     const isAuthenticated = qaSubmit ? !qaSubmit.disabled : false;
     
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    
+    console.log('QA System initialized:', { videoId, videoUserId, isAuthenticated });
+    
     // Initialize the comment system
     initQASystem();
     
@@ -28,257 +33,109 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function initQASystem() {
         console.log("Initializing QA system...");
-        console.log("isAuthenticated:", isAuthenticated);
         
-        // Register event listeners for non-authenticated users
         if (!isAuthenticated) {
             setupNonAuthenticatedHandlers();
         } else {
-            // Set up comment submission
             setupCommentSubmission();
-            // Set up like buttons
-            setupLikeButtons();
         }
         
-        // Set up event delegation for reply buttons
-        setupReplyButtonDelegation();
-        // Apply event handlers to existing comments
+        // Set up event delegation for all interactive elements
+        setupEventDelegation();
+        
+        // Set up existing comments
         setupExistingComments();
+        
         // Set up show/hide replies functionality
         setupShowHideReplies();
     }
 
     /**
-     * Set up show/hide replies functionality
+     * Set up event delegation for dynamic content
      */
-    function setupShowHideReplies() {
-        console.log("Setting up show/hide replies functionality");
+    function setupEventDelegation() {
+        if (!qaList) return;
         
-        // Find all show replies buttons
-        const showRepliesBtns = document.querySelectorAll('.show-replies-btn');
-        console.log(`Found ${showRepliesBtns.length} show/hide buttons`);
-        
-        // Add click handlers to each button
-        showRepliesBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                // Get the current state
-                const isShown = this.getAttribute('data-shown') === 'true';
-                
-                // Find the related replies container
-                // It's the next element if it has the qa-replies class
-                const repliesContainer = this.nextElementSibling;
-                
-                if (repliesContainer && repliesContainer.classList.contains('qa-replies')) {
-                    const replyCount = repliesContainer.querySelectorAll('.qa-reply').length;
-                    
-                    if (isShown) {
-                        // Hide replies
-                        repliesContainer.style.display = 'none';
-                        this.innerHTML = `Показать ответы (${replyCount})`;
-                        this.setAttribute('data-shown', 'false');
-                    } else {
-                        // Show replies
-                        repliesContainer.style.display = 'block';
-                        this.innerHTML = 'Скрыть ответы';
-                        this.setAttribute('data-shown', 'true');
-                    }
-                } else {
-                    console.error("Could not find replies container after button");
-                }
-            });
-        });
-        
-        // Also set up event delegation for dynamically added buttons
-        document.addEventListener('click', function(e) {
-            const btn = e.target.closest('.show-replies-btn');
-            if (!btn) return; // Not a show replies button
-            
-            // Prevent handling if the button already has a direct event handler
-            if (btn.getAttribute('data-has-handler') === 'true') return;
-            
-            // Mark this button as handled via delegation
-            btn.setAttribute('data-has-handler', 'true');
-            
-            // Get current state
-            const isShown = btn.getAttribute('data-shown') === 'true';
-            
-            // Find replies container (should be the next element)
-            const repliesContainer = btn.nextElementSibling;
-            
-            if (repliesContainer && repliesContainer.classList.contains('qa-replies')) {
-                const replyCount = repliesContainer.querySelectorAll('.qa-reply').length;
-                
-                if (isShown) {
-                    // Hide replies
-                    repliesContainer.style.display = 'none';
-                    btn.innerHTML = `Показать ответы (${replyCount})`;
-                    btn.setAttribute('data-shown', 'false');
-                } else {
-                    // Show replies
-                    repliesContainer.style.display = 'block';
-                    btn.innerHTML = 'Скрыть ответы';
-                    btn.setAttribute('data-shown', 'true');
-                }
-            }
-        });
-    }
-
-    function setupReplyButtonDelegation() {
-        console.log("Setting up reply button delegation...");
         qaList.addEventListener('click', function(e) {
-            // Handle direct comment reply buttons
+            // Handle reply buttons
             const replyBtn = e.target.closest('.qa-reply-btn');
             if (replyBtn && isAuthenticated) {
                 e.preventDefault();
                 const commentId = replyBtn.getAttribute('data-comment-id');
-                console.log(`Reply button clicked for comment ${commentId}`);
                 toggleReplyForm(commentId);
                 return;
             }
             
-            // Handle reply to reply buttons
+            // Handle reply-to-reply buttons
             const replyToReplyBtn = e.target.closest('.qa-reply-to-reply-btn');
             if (replyToReplyBtn && isAuthenticated) {
                 e.preventDefault();
                 const commentId = replyToReplyBtn.getAttribute('data-comment-id');
                 const username = replyToReplyBtn.getAttribute('data-username');
-                
-                console.log(`Reply to reply clicked - comment: ${commentId}, username: ${username}`);
-                
-                // Show the reply form
-                toggleReplyForm(commentId);
-                
-                // Add username to input field
-                const replyInput = document.getElementById(`reply-input-${commentId}`);
-                if (replyInput) {
-                    replyInput.value = `@${username} `;
-                    replyInput.focus();
-                    // Put cursor at the end
-                    replyInput.selectionStart = replyInput.selectionEnd = replyInput.value.length;
-                }
+                handleReplyToReply(commentId, username);
+                return;
             }
             
-            // Handle show/hide replies buttons created dynamically
+            // Handle like buttons
+            const likeBtn = e.target.closest('.qa-like');
+            if (likeBtn) {
+                e.preventDefault();
+                if (!isAuthenticated) {
+                    showLoginModal();
+                    return;
+                }
+                toggleLike(likeBtn);
+                return;
+            }
+            
+            // Handle show/hide replies buttons
             const showRepliesBtn = e.target.closest('.show-replies-btn');
             if (showRepliesBtn) {
-                const isShown = showRepliesBtn.getAttribute('data-shown') === 'true';
-                const repliesSection = showRepliesBtn.nextElementSibling;
-                
-                if (repliesSection && repliesSection.classList.contains('qa-replies')) {
-                    const replyCount = repliesSection.querySelectorAll('.qa-reply').length;
-                    
-                    if (isShown) {
-                        // Hide replies
-                        repliesSection.style.display = 'none';
-                        showRepliesBtn.innerHTML = `Показать ответы (${replyCount})`;
-                        showRepliesBtn.setAttribute('data-shown', 'false');
-                    } else {
-                        // Show replies
-                        repliesSection.style.display = 'block';
-                        showRepliesBtn.innerHTML = 'Скрыть ответы';
-                        showRepliesBtn.setAttribute('data-shown', 'true');
-                    }
-                }
+                e.preventDefault();
+                toggleRepliesVisibility(showRepliesBtn);
+                return;
             }
-        });
-    }
-    
-    /**
-     * Setup event handlers for existing comments
-     */
-    function setupExistingComments() {
-        console.log("Setting up existing comments...");
-        const existingComments = document.querySelectorAll('.qa-item');
-        console.log(`Found ${existingComments.length} existing comments`);
-        
-        existingComments.forEach(comment => {
-            const commentId = comment.getAttribute('data-comment-id');
-            console.log(`Setting up comment ID: ${commentId}`);
             
-            // Set up cancel buttons
-            const cancelBtn = comment.querySelector('.cancel-reply');
+            // Handle cancel reply buttons
+            const cancelBtn = e.target.closest('.cancel-reply');
             if (cancelBtn) {
-                cancelBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    hideReplyForm(commentId);
-                });
+                e.preventDefault();
+                const commentId = cancelBtn.getAttribute('data-comment-id');
+                hideReplyForm(commentId);
+                return;
             }
             
-            // Set up reply submission
-            const replySubmitBtn = comment.querySelector('.reply-submit');
-            if (replySubmitBtn && isAuthenticated) {
-                replySubmitBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    submitReply(commentId);
-                });
-                
-                // Also allow submit on Enter key
-                const replyInput = comment.querySelector(`#reply-input-${commentId}`);
-                if (replyInput) {
-                    replyInput.addEventListener('keypress', function(e) {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            submitReply(commentId);
-                        }
-                    });
-                }
+            // Handle reply submit buttons
+            const replySubmitBtn = e.target.closest('.reply-submit');
+            if (replySubmitBtn) {
+                e.preventDefault();
+                const commentId = replySubmitBtn.getAttribute('data-comment-id');
+                submitReply(commentId);
+                return;
             }
-            
-            // Set up like buttons
-            setupCommentLikes(comment);
-            
-            // Set up reply-to-reply buttons for existing replies
-            const replies = comment.querySelectorAll('.qa-reply');
-            replies.forEach(reply => {
-                setupReplyToReplyButtons(reply);
-            });
+        });
+        
+        // Handle Enter key in reply inputs
+        qaList.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.matches('[id^="reply-input-"]')) {
+                e.preventDefault();
+                const commentId = e.target.id.replace('reply-input-', '');
+                submitReply(commentId);
+            }
         });
     }
-    
-    /**
-     * Set up reply-to-reply buttons for a specific reply
-     */
-    function setupReplyToReplyButtons(replyElement) {
-        // Add reply button only if not already present
-        if (!replyElement.querySelector('.qa-reply-to-reply-btn')) {
-            const actionsDiv = replyElement.querySelector('.qa-actions');
-            if (actionsDiv) {
-                // Use user_id instead of display name for the mention
-                const username = replyElement.querySelector('.qa-author').getAttribute('data-username') || 
-                                replyElement.getAttribute('data-user-id');
-                const commentId = replyElement.closest('.qa-item').getAttribute('data-comment-id');
-                
-                const replyBtn = document.createElement('button');
-                replyBtn.className = 'qa-reply-to-reply-btn';
-                replyBtn.textContent = 'Ответить';
-                replyBtn.setAttribute('data-comment-id', commentId);
-                replyBtn.setAttribute('data-username', username);
-                
-                actionsDiv.appendChild(replyBtn);
-            }
-        }    
-    }
-    
+
     /**
      * Set up handlers for non-authenticated users
      */
     function setupNonAuthenticatedHandlers() {
         // Redirect to login when trying to interact with comment box
-        const inputs = qaSection.querySelectorAll('input');
-        inputs.forEach(input => {
-            input.addEventListener('click', function(e) {
+        if (qaInput) {
+            qaInput.addEventListener('click', function(e) {
                 e.preventDefault();
                 showLoginModal();
             });
-        });
-        
-        // Redirect likes to login
-        document.querySelectorAll('.qa-like').forEach(likeBtn => {
-            likeBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                showLoginModal();
-            });
-        });
+        }
     }
     
     /**
@@ -309,6 +166,91 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
+     * Set up existing comments
+     */
+    function setupExistingComments() {
+        console.log("Setting up existing comments...");
+        const existingComments = document.querySelectorAll('.qa-item');
+        console.log(`Found ${existingComments.length} existing comments`);
+        
+        existingComments.forEach(comment => {
+            const commentId = comment.getAttribute('data-comment-id');
+            console.log(`Setting up comment ID: ${commentId}`);
+            
+            // Set up reply-to-reply buttons for existing replies
+            const replies = comment.querySelectorAll('.qa-reply');
+            replies.forEach(reply => {
+                setupReplyToReplyButtons(reply);
+            });
+        });
+    }
+    
+    /**
+     * Set up reply-to-reply buttons for a specific reply
+     */
+    function setupReplyToReplyButtons(replyElement) {
+        // Add reply button only if not already present
+        if (!replyElement.querySelector('.qa-reply-to-reply-btn')) {
+            const actionsDiv = replyElement.querySelector('.qa-actions');
+            if (actionsDiv) {
+                const username = replyElement.querySelector('.qa-author').getAttribute('data-username') || 
+                                replyElement.getAttribute('data-user-id');
+                const commentId = replyElement.closest('.qa-item').getAttribute('data-comment-id');
+                
+                const replyBtn = document.createElement('button');
+                replyBtn.className = 'qa-reply-to-reply-btn';
+                replyBtn.textContent = 'Ответить';
+                replyBtn.setAttribute('data-comment-id', commentId);
+                replyBtn.setAttribute('data-username', username);
+                
+                actionsDiv.appendChild(replyBtn);
+            }
+        }    
+    }
+    
+    /**
+     * Set up show/hide replies functionality
+     */
+    function setupShowHideReplies() {
+        console.log("Setting up show/hide replies functionality");
+        
+        // Find all show replies buttons
+        const showRepliesBtns = document.querySelectorAll('.show-replies-btn');
+        console.log(`Found ${showRepliesBtns.length} show/hide buttons`);
+        
+        // Add click handlers to each button
+        showRepliesBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                toggleRepliesVisibility(this);
+            });
+        });
+    }
+
+    /**
+     * Toggle replies visibility
+     */
+    function toggleRepliesVisibility(btn) {
+        const isShown = btn.getAttribute('data-shown') === 'true';
+        const repliesContainer = btn.nextElementSibling;
+        
+        if (repliesContainer && repliesContainer.classList.contains('qa-replies')) {
+            const replyCount = repliesContainer.querySelectorAll('.qa-reply').length;
+            
+            if (isShown) {
+                // Hide replies
+                repliesContainer.style.display = 'none';
+                btn.innerHTML = `Показать ответы (${replyCount})`;
+                btn.setAttribute('data-shown', 'false');
+            } else {
+                // Show replies
+                repliesContainer.style.display = 'block';
+                btn.innerHTML = 'Скрыть ответы';
+                btn.setAttribute('data-shown', 'true');
+            }
+        }
+    }
+    
+    /**
      * Function to submit a new comment
      */
     function submitComment() {
@@ -320,13 +262,9 @@ document.addEventListener('DOMContentLoaded', function() {
         qaSubmit.disabled = true;
         qaSubmit.textContent = 'Отправка...';
         
-        // Get CSRF token for Django
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        
         // Create a proper video ID for API
         let apiVideoId = videoId;
         if (videoUserId) {
-            // Make sure we use the composite ID format for the API
             apiVideoId = `${videoUserId}__${videoId}`;
         }
         
@@ -365,42 +303,13 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error adding comment:', error);
-            
-            // If API is not available, use mock comment for demonstration
-            if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                addMockComment(commentText);
-                showStatusMessage('Комментарий добавлен (демо-режим)', 'success');
-            } else {
-                showStatusMessage('Ошибка при отправке комментария. Пожалуйста, попробуйте позже.', 'error');
-            }
+            showStatusMessage('Ошибка при отправке комментария. Пожалуйста, попробуйте позже.', 'error');
         })
         .finally(() => {
             // Reset button state
             qaSubmit.disabled = false;
             qaSubmit.textContent = 'Отправить';
         });
-    }
-    
-    /**
-     * Add a mock comment (for demonstration when API is not available)
-     */
-    function addMockComment(commentText) {
-        // Clear input
-        qaInput.value = '';
-        
-        // Create a mock comment object
-        const mockComment = {
-            id: 'mock-' + Date.now(),
-            user_id: 'current-user',
-            display_name: getCurrentUserName(),
-            text: commentText,
-            date: new Date().toISOString(),
-            likes: 0,
-            replies: []
-        };
-        
-        // Add the mock comment to the DOM
-        addNewComment(mockComment);
     }
     
     /**
@@ -418,9 +327,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add new comment to the top of the list
         qaList.prepend(commentElement);
-        
-        // Set up event handlers for the new comment
-        setupCommentHandlers(commentElement, comment.id);
     }
     
     /**
@@ -432,6 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const div = document.createElement('div');
         div.className = 'qa-item';
         div.setAttribute('data-comment-id', comment.id);
+        div.setAttribute('data-user-id', comment.user_id);
         
         const displayName = comment.display_name || 'User';
         const firstLetter = displayName.charAt(0);
@@ -443,49 +350,36 @@ document.addEventListener('DOMContentLoaded', function() {
         // Determine avatar content - either image or first letter
         let avatarContent = '';
         if (comment.avatar_url) {
-            avatarContent = `<img src="${comment.avatar_url}" alt="${displayName}">`;
+            avatarContent = `<img src="${comment.avatar_url}" alt="${displayName}" loading="lazy">`;
         } else {
-            avatarContent = firstLetter;
+            avatarContent = `<span class="avatar-text">${firstLetter}</span>`;
         }
         
-        // Get current user initial for reply form
-        const currentUserInitial = getCurrentUserInitial();
         // Get current user avatar for reply form
         const currentUserAvatar = getCurrentUserAvatar();
         
         div.innerHTML = `
-            <div class="user-avatar ${isAuthor ? 'author-avatar' : ''}">
+            <div class="avatar ${isAuthor ? 'author-avatar' : ''}">
                 ${avatarContent}
             </div>
             <div class="qa-content">
-                <div class="qa-author ${isAuthor ? 'is-author' : ''}">
+                <div class="qa-author ${isAuthor ? 'is-author' : ''}" data-username="${comment.user_id}">
                     ${displayName}
                     ${isAuthor ? '<span class="author-badge">Автор</span>' : ''}
                 </div>
-                <div class="qa-text">${replyText}</div>
+                <div class="qa-text">${escapeHtml(comment.text)}</div>
                 <div class="qa-meta">${formattedDate}</div>
                 <div class="qa-actions">
-                    <button class="qa-like" data-liked="false">👍 <span>${reply.likes || 0}</span></button>
-                    <button class="qa-reply-to-reply-btn" data-username="${displayName}">Ответить</button>
-                </div>
-            </div>
-                ${avatarContent}
-            </div>
-            <div class="qa-content">
-                <div class="qa-author ${isAuthor ? 'is-author' : ''}">
-                    ${displayName}
-                    ${isAuthor ? '<span class="author-badge">Автор</span>' : ''}
-                </div>
-                <div class="qa-text">${comment.text}</div>
-                <div class="qa-meta">${formattedDate}</div>
-                <div class="qa-actions">
-                    <button class="qa-like" data-liked="false">👍 <span>${comment.likes || 0}</span></button>
+                    <button class="qa-like" data-liked="false">
+                        <img src="/static/icons/like.svg" alt="Like" width="20" height="20"> 
+                        <span>${comment.likes || 0}</span>
+                    </button>
                     <button class="qa-reply-btn" data-comment-id="${comment.id}">Ответить</button>
                 </div>
                 
                 <!-- Reply form (initially hidden) -->
                 <div class="reply-form" id="reply-form-${comment.id}" style="display: none;">
-                    <div class="user-avatar">${currentUserAvatar}</div>
+                    <div class="avatar">${currentUserAvatar}</div>
                     <input type="text" id="reply-input-${comment.id}" placeholder="Ответить на вопрос...">
                     <button class="reply-submit" data-comment-id="${comment.id}">Ответить</button>
                     <button class="cancel-reply" data-comment-id="${comment.id}">Отмена</button>
@@ -496,124 +390,6 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         return div;
-    }
-    
-    /**
-     * Set up event handlers for a comment element
-     */
-    function setupCommentHandlers(commentElement, commentId) {
-        // Set up reply button
-        const replyBtn = commentElement.querySelector('.qa-reply-btn');
-        if (replyBtn) {
-            replyBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log(`Reply button clicked for comment ${commentId}`);
-                toggleReplyForm(commentId);
-            });
-        }
-        
-        // Set up cancel button
-        const cancelBtn = commentElement.querySelector('.cancel-reply');
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                hideReplyForm(commentId);
-            });
-        }
-        
-        // Set up reply submission
-        const replySubmitBtn = commentElement.querySelector('.reply-submit');
-        if (replySubmitBtn) {
-            replySubmitBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                submitReply(commentId);
-            });
-            
-            // Also allow submit on Enter key
-            const replyInput = commentElement.querySelector(`#reply-input-${commentId}`);
-            if (replyInput) {
-                replyInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        submitReply(commentId);
-                    }
-                });
-            }
-        }
-        
-        // Set up like button
-        setupCommentLikes(commentElement);
-    }
-    
-    /**
-     * Set up all reply buttons
-     */
-    function setupReplyButtons() {
-        console.log("Setting up reply buttons...");
-        document.querySelectorAll('.qa-reply-btn').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const commentId = this.getAttribute('data-comment-id');
-                console.log(`Reply button clicked for comment ${commentId}`);
-                toggleReplyForm(commentId);
-            });
-        });
-    }
-    
-    /**
-     * Set up like buttons
-     */
-    function setupLikeButtons() {
-        document.querySelectorAll('.qa-item').forEach(comment => {
-            setupCommentLikes(comment);
-        });
-    }
-    
-    /**
-     * Set up like functionality for a specific comment
-     */
-    function setupCommentLikes(commentElement) {
-        const likeButton = commentElement.querySelector('.qa-like');
-        if (likeButton && isAuthenticated) {
-            likeButton.addEventListener('click', function() {
-                toggleLike(this);
-            });
-        }
-    }
-    
-    /**
-     * Toggle like state on a comment/reply
-     */
-    function toggleLike(likeButton) {
-        // Toggle the liked state
-        const isLiked = likeButton.getAttribute('data-liked') === 'true';
-        likeButton.setAttribute('data-liked', !isLiked);
-        
-        // Update the visual state
-        if (!isLiked) {
-            likeButton.classList.add('liked');
-            likeButton.style.color = 'var(--accent-color)';
-        } else {
-            likeButton.classList.remove('liked');
-            likeButton.style.color = '';
-        }
-        
-        // Update the count
-        const countSpan = likeButton.querySelector('span');
-        let count = parseInt(countSpan.textContent) || 0;
-        
-        if (!isLiked) {
-            count++;
-        } else {
-            count = Math.max(0, count - 1);
-        }
-        
-        countSpan.textContent = count;
-        
-        // In a real implementation, you would send this to the server
-        // This is just a frontend simulation for now
-        const commentId = likeButton.closest('.qa-item').getAttribute('data-comment-id');
-        console.log(`Like toggled for comment ${commentId}, new state: ${!isLiked}`);
     }
     
     /**
@@ -641,7 +417,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Toggle this form
         const isHidden = replyForm.style.display === 'none' || replyForm.style.display === '';
         replyForm.style.display = isHidden ? 'flex' : 'none';
-        console.log(`New reply form display: ${replyForm.style.display}`);
         
         // Focus the input field if showing
         if (isHidden) {
@@ -665,6 +440,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
+     * Handle reply to reply functionality
+     */
+    function handleReplyToReply(commentId, username) {
+        // Show the reply form
+        toggleReplyForm(commentId);
+        
+        // Add username to input field - ensure only one @ is added
+        const replyInput = document.getElementById(`reply-input-${commentId}`);
+        if (replyInput) {
+            // Clean username (remove @ if present)
+            const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
+            replyInput.value = `@${cleanUsername} `;
+            replyInput.focus();
+            // Put cursor at the end
+            replyInput.selectionStart = replyInput.selectionEnd = replyInput.value.length;
+        }
+    }
+    
+    /**
      * Submit a reply to a comment
      */
     function submitReply(commentId) {
@@ -679,13 +473,9 @@ document.addEventListener('DOMContentLoaded', function() {
         replySubmitBtn.disabled = true;
         replySubmitBtn.textContent = 'Отправка...';
         
-        // Get CSRF token for Django
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        
         // Create a proper video ID for API
         let apiVideoId = videoId;
         if (videoUserId) {
-            // Make sure we use the composite ID format for the API
             apiVideoId = `${videoUserId}__${videoId}`;
         }
         
@@ -726,45 +516,13 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error adding reply:', error);
-            
-            // If API is not available, use mock reply for demonstration
-            if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                addMockReply(commentId, replyText);
-                showStatusMessage('Ответ добавлен (демо-режим)', 'success');
-            } else {
-                showStatusMessage('Ошибка при отправке ответа. Пожалуйста, попробуйте позже.', 'error');
-            }
+            showStatusMessage('Ошибка при отправке ответа. Пожалуйста, попробуйте позже.', 'error');
         })
         .finally(() => {
             // Reset button state
             replySubmitBtn.disabled = false;
             replySubmitBtn.textContent = 'Ответить';
         });
-    }
-    
-    /**
-     * Add a mock reply (for demonstration when API is not available)
-     */
-    function addMockReply(commentId, replyText) {
-        // Clear input and hide form
-        const replyForm = document.getElementById(`reply-form-${commentId}`);
-        const replyInput = document.getElementById(`reply-input-${commentId}`);
-        
-        replyInput.value = '';
-        replyForm.style.display = 'none';
-        
-        // Create a mock reply object
-        const mockReply = {
-            id: 'mock-reply-' + Date.now(),
-            user_id: 'current-user',
-            display_name: getCurrentUserName(),
-            text: replyText,
-            date: new Date().toISOString(),
-            likes: 0
-        };
-        
-        // Add the mock reply to the DOM
-        addReplyToComment(commentId, mockReply);
     }
     
     /**
@@ -798,7 +556,6 @@ document.addEventListener('DOMContentLoaded', function() {
             repliesContainer.style.display = 'block';
             
             // Update button text
-            const replyCount = repliesContainer.querySelectorAll('.qa-reply').length + 1; // +1 for the new reply
             showRepliesBtn.innerHTML = 'Скрыть ответы';
             showRepliesBtn.setAttribute('data-shown', 'true');
         } else if (repliesContainer.querySelectorAll('.qa-reply').length === 0) {
@@ -817,60 +574,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add the reply to container
         repliesContainer.appendChild(replyElement);
-        
-        // Set up like functionality for the reply
-        const likeButton = replyElement.querySelector('.qa-like');
-        if (likeButton && isAuthenticated) {
-            likeButton.addEventListener('click', function() {
-                toggleLike(this);
-            });
-        }
-        
-        // Add click handler for reply-to-reply button
-        const replyToReplyBtn = replyElement.querySelector('.qa-reply-to-reply-btn');
-        if (replyToReplyBtn && isAuthenticated) {
-            replyToReplyBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const parentCommentId = this.getAttribute('data-comment-id');
-                const username = this.getAttribute('data-username');
-                
-                // Show the reply form
-                toggleReplyForm(parentCommentId);
-                
-                // Add username to input field
-                const replyInput = document.getElementById(`reply-input-${parentCommentId}`);
-                if (replyInput) {
-                    replyInput.value = `@${username} `;
-                    replyInput.focus();
-                    // Put cursor at the end
-                    replyInput.selectionStart = replyInput.selectionEnd = replyInput.value.length;
-                }
-            });
-        }
-
-        document.querySelectorAll('.qa-reply-to-reply-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const commentId = this.getAttribute('data-comment-id');
-                const username = this.getAttribute('data-username');
-                
-                // Show the reply form
-                const replyForm = document.getElementById(`reply-form-${commentId}`);
-                if (replyForm) {
-                    replyForm.style.display = 'flex';
-                    
-                    // Add username to input field - ensure only one @ is added
-                    const replyInput = document.getElementById(`reply-input-${commentId}`);
-                    if (replyInput) {
-                        // Remove any @ from the username if present
-                        const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
-                        replyInput.value = `@${cleanUsername} `;
-                        replyInput.focus();
-                        // Put cursor at the end
-                        replyInput.selectionStart = replyInput.selectionEnd = replyInput.value.length;
-                    }
-                }
-            });
-        });
         
         // Update the reply count if needed
         updateReplyCount(commentId);
@@ -898,7 +601,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     /**
      * Create a DOM element for a reply
-    */
+     */
     function createReplyElement(reply) {
         const isAuthor = reply.user_id === videoUserId;
         
@@ -924,14 +627,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Process text to handle @username replies
-        let replyText = reply.text;
-        if (replyText.startsWith('@')) {
-            const parts = replyText.split(' ');
-            if (parts.length > 0 && parts[0].startsWith('@')) {
-                const mention = parts[0];
-                replyText = replyText.replace(mention, `<span class="user-mention">${mention}</span>`);
-            }
-        }
+        const replyText = processMentions(reply.text);
         
         const parentCommentId = reply.parentCommentId || '';
         
@@ -947,7 +643,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="qa-text">${replyText}</div>
                 <div class="qa-meta">${formattedDate}</div>
                 <div class="qa-actions">
-                    <button class="qa-like" data-liked="false"><img src="/static/icons/like.svg" alt="Like" width="20" height="20"> <span>${reply.likes || 0}</span></button>
+                    <button class="qa-like" data-liked="false">
+                        <img src="/static/icons/like.svg" alt="Like" width="20" height="20"> 
+                        <span>${reply.likes || 0}</span>
+                    </button>
                     <button class="qa-reply-to-reply-btn" data-comment-id="${parentCommentId}" data-username="${username}">Ответить</button>
                 </div>
             </div>
@@ -972,4 +671,290 @@ document.addEventListener('DOMContentLoaded', function() {
         
         return div;
     }
+    
+    /**
+     * Toggle like state on a comment/reply
+     */
+    function toggleLike(likeButton) {
+        if (!isAuthenticated) {
+            showLoginModal();
+            return;
+        }
+
+        // Get comment info
+        const commentElement = likeButton.closest('.qa-item');
+        const replyElement = likeButton.closest('.qa-reply');
+        const isReply = !!replyElement;
+        
+        let commentId;
+        if (isReply) {
+            commentId = replyElement.getAttribute('data-reply-id');
+        } else {
+            commentId = commentElement.getAttribute('data-comment-id');
+        }
+        
+        if (!commentId) {
+            console.error('Could not find comment ID');
+            return;
+        }
+
+        // Store current state for rollback
+        const currentIsLiked = likeButton.getAttribute('data-liked') === 'true';
+        const countSpan = likeButton.querySelector('span');
+        const currentCount = parseInt(countSpan.textContent) || 0;
+        
+        // Update UI optimistically
+        const newIsLiked = !currentIsLiked;
+        const newCount = newIsLiked ? currentCount + 1 : Math.max(0, currentCount - 1);
+        
+        likeButton.setAttribute('data-liked', newIsLiked);
+        countSpan.textContent = newCount;
+        
+        if (newIsLiked) {
+            likeButton.classList.add('liked');
+            likeButton.style.color = 'var(--accent-color)';
+        } else {
+            likeButton.classList.remove('liked');
+            likeButton.style.color = '';
+        }
+        
+        // Send to server
+        const formData = new FormData();
+        formData.append('comment_id', commentId);
+        formData.append('video_id', `${videoUserId}__${videoId}`);
+        formData.append('is_reply', isReply ? 'true' : 'false');
+        
+        fetch('/api/toggle-comment-like/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update with server response
+                likeButton.setAttribute('data-liked', data.is_liked);
+                countSpan.textContent = data.likes;
+                
+                if (data.is_liked) {
+                    likeButton.classList.add('liked');
+                    likeButton.style.color = 'var(--accent-color)';
+                } else {
+                    likeButton.classList.remove('liked');
+                    likeButton.style.color = '';
+                }
+                
+                console.log(`Like toggled for ${isReply ? 'reply' : 'comment'} ${commentId}`);
+            } else {
+                // Rollback on error
+                likeButton.setAttribute('data-liked', currentIsLiked);
+                countSpan.textContent = currentCount;
+                
+                if (currentIsLiked) {
+                    likeButton.classList.add('liked');
+                    likeButton.style.color = 'var(--accent-color)';
+                } else {
+                    likeButton.classList.remove('liked');
+                    likeButton.style.color = '';
+                }
+                
+                showStatusMessage(data.error || 'Ошибка при изменении лайка', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error toggling like:', error);
+            
+            // Rollback on error
+            likeButton.setAttribute('data-liked', currentIsLiked);
+            countSpan.textContent = currentCount;
+            
+            if (currentIsLiked) {
+                likeButton.classList.add('liked');
+                likeButton.style.color = 'var(--accent-color)';
+            } else {
+                likeButton.classList.remove('liked');
+                likeButton.style.color = '';
+            }
+            
+            showStatusMessage('Ошибка сети при изменении лайка', 'error');
+        });
+    }
+    
+    /**
+     * Process text to highlight @mentions
+     */
+    function processMentions(text) {
+        if (!text) return '';
+        
+        // Escape HTML first
+        text = escapeHtml(text);
+        
+        // Replace @username with highlighted span
+        return text.replace(/@(\w+)/g, '<span class="user-mention">@$1</span>');
+    }
+    
+    /**
+     * Escape HTML to prevent XSS
+     */
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    /**
+     * Show status message to user
+     */
+    function showStatusMessage(message, type = 'info') {
+        // Remove any existing status messages
+        const existingMessage = document.querySelector('.status-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
+        // Create new status message
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `status-message status-${type}`;
+        messageDiv.textContent = message;
+        
+        // Add to page
+        document.body.appendChild(messageDiv);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.remove();
+            }
+        }, 3000);
+    }
+    
+    /**
+     * Show login modal for non-authenticated users
+     */
+    function showLoginModal() {
+        // Check if modal already exists
+        let modal = document.getElementById('login-modal');
+        
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'login-modal';
+            modal.className = 'login-modal-overlay';
+            modal.innerHTML = `
+                <div class="login-modal-content">
+                    <button class="login-modal-close" onclick="this.closest('.login-modal-overlay').remove()">×</button>
+                    <h3>Требуется авторизация</h3>
+                    <p>Для взаимодействия с комментариями необходимо войти в систему</p>
+                    <div class="login-modal-buttons">
+                        <a href="/login/" class="login-btn">Войти</a>
+                        <a href="/register/" class="register-btn">Регистрация</a>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Add click outside to close
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+        
+        modal.style.display = 'flex';
+    }
+    
+    /**
+     * Get current user avatar HTML for reply forms
+     */
+    function getCurrentUserAvatar() {
+        // Check if there's a current user avatar in the page
+        const commentForm = document.getElementById('qa-form');
+        if (commentForm) {
+            const avatarContainer = commentForm.querySelector('.avatar');
+            if (avatarContainer) {
+                return avatarContainer.innerHTML;
+            }
+        }
+        
+        // Fallback to initial
+        return '<span class="avatar-text">U</span>';
+    }
+    
+    /**
+     * Get current user name for display
+     */
+    function getCurrentUserName() {
+        // Try to get from the page context or form
+        const qaForm = document.getElementById('qa-form');
+        if (qaForm) {
+            const avatar = qaForm.querySelector('.avatar img');
+            if (avatar) {
+                return avatar.alt || 'User';
+            }
+        }
+        return 'User';
+    }
+    
+    /**
+     * Get current user initial
+     */
+    function getCurrentUserInitial() {
+        const userName = getCurrentUserName();
+        return userName.charAt(0).toUpperCase();
+    }
+    
+    /**
+     * Format date for display
+     */
+    function formatDate(date) {
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 1) {
+            return 'Вчера';
+        } else if (diffDays < 7) {
+            return `${diffDays} дней назад`;
+        } else {
+            return date.toLocaleDateString('ru-RU');
+        }
+    }
+    
+    // Load comment avatars on page load
+    function loadCommentAvatars() {
+        const avatarPlaceholders = document.querySelectorAll('.qa-item .avatar .avatar-text, .qa-reply .avatar .avatar-text');
+        
+        avatarPlaceholders.forEach(placeholder => {
+            const commentElement = placeholder.closest('.qa-item') || placeholder.closest('.qa-reply');
+            const userId = commentElement.getAttribute('data-user-id');
+            
+            if (userId && userId !== 'current-user') {
+                // Try to get avatar URL from user profile
+                fetch(`/api/get-user-profile/?user_id=${encodeURIComponent(userId)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.profile && data.profile.avatar_url) {
+                            // Replace placeholder with actual image
+                            const avatarContainer = placeholder.parentElement;
+                            const img = document.createElement('img');
+                            img.src = data.profile.avatar_url;
+                            img.alt = commentElement.querySelector('.qa-author').textContent.trim();
+                            img.loading = "lazy";
+                            
+                            // Remove placeholder and add image
+                            placeholder.remove();
+                            avatarContainer.appendChild(img);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading comment avatar:', error);
+                    });
+            }
+        });
+    }
+    
+    // Load avatars after a short delay
+    setTimeout(loadCommentAvatars, 100);
 });
