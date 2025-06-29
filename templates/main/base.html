@@ -17,6 +17,8 @@
     <link rel="stylesheet" href="{% static 'css/kronik-ai.css' %}">
     <link rel="stylesheet" href="{% static 'css/voice-interface.css' %}">
     <link rel="stylesheet" href="{% static 'css/analytics.css' %}">
+    <link rel="stylesheet" href="{% static 'css/notes.css' %}">
+    <link rel="stylesheet" href="{% static 'css/notifications.css' %}">
     <!-- Add studio.css if we're on the studio page -->
     {% if request.path == '/studio/' %}
     <link rel="stylesheet" href="{% static 'css/studio.css' %}">
@@ -44,19 +46,19 @@
         </div>
         <div class="actions">
             <div class="notification-button">
-                <button class="notification-icon">
+                <button class="notification-icon" title="Уведомления">
                     <img src="/static/icons/notification.svg" alt="Уведомления" width="24" height="24">
                     <span class="notification-badge">0</span>
                 </button>
                 <div class="notification-dropdown">
                     <div class="notification-header">
-                        <h3 data-translate="notifications">Уведомления</h3>
+                        <h3>Уведомления</h3>
                     </div>
-                        <div class="notification-content">
+                    <div class="notification-content">
                         {% if user.is_authenticated %}
-                            <div class="empty-notifications">
-                                <div class="empty-icon"><img src="/static/icons/notification.svg" alt="Уведомления" width="80" height="80"></div>
-                                <p>У вас пока нет уведомлений</p>
+                            <div class="notification-loading">
+                                <div class="notification-loading-spinner"></div>
+                                <span>Загрузка уведомлений...</span>
                             </div>
                         {% else %}
                             <div class="notification-login-required">
@@ -207,7 +209,7 @@
 
             <div class="sidebar-section">
                 <div class="sidebar-title">ИНСТРУМЕНТЫ</div>
-                <div class="menu-item">
+                <div class="menu-item {% if request.path == '/notes/' %}active{% endif %}" onclick="window.location.href='{% url 'notes' %}'">
                     <div class="menu-icon"><img src="/static/icons/paper.svg" alt="Light mode" width="24" height="24"></div>
                     <div class="menu-text">Заметки</div>
                 </div>
@@ -315,6 +317,7 @@
     <script src="{% static 'js/voice-interface.js' %}"></script>
     <script src="{% static 'js/markdown-parser.js' %}"></script>
     <script src="{% static 'js/base.js' %}"></script>
+    <script src="{% static 'js/notifications.js' %}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

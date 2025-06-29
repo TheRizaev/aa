@@ -1,9 +1,12 @@
 {% extends 'main/base.html' %}
 {% load static %}
 {% load humanize %}
+{% load format_mentions%}
 {% load format_views %}
 {% block title %}{{ video.title }} - KRONIK{% endblock %}
-
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/video-notes.css' %}">
+{% endblock %}
 {% block content %}
 <div class="video-page-layout">
     <div class="video-content">
@@ -275,7 +278,7 @@
                                 <button class="show-replies-btn" data-shown="false">Показать ответы ({{ comment.replies|length }})</button>
                                 <div class="qa-replies" style="display: none;">
                                     {% for reply in comment.replies %}
-                                    <div class="qa-reply" data-user-id="{{ reply.user_id }}">
+                                    <div class="qa-reply" data-reply-id="{{ reply.id }}" data-user-id="{{ reply.user_id }}">
                                         <div class="avatar {% if reply.user_id == video.user_id %}author-avatar{% endif %}">
                                             {% if reply.avatar_url %}
                                                 <img src="{{ reply.avatar_url }}" alt="{{ reply.display_name }}" loading="lazy">
@@ -288,10 +291,13 @@
                                                 {{ reply.display_name }}
                                                 {% if reply.user_id == video.user_id %}<span class="author-badge">Автор</span>{% endif %}
                                             </div>
-                                            <div class="qa-text">{{ reply.text }}</div>
+                                            <div class="qa-text">{{ reply.text|format_mentions }}</div>
                                             <div class="qa-meta">{{ reply.date|date:"d.m.Y" }}</div>
                                             <div class="qa-actions">
-                                                <button class="qa-like"><img src="/static/icons/like.svg" alt="Like" width="20" height="20"> <span>{{ reply.likes|default:"0" }}</span></button>
+                                                <button class="qa-like" data-liked="false">
+                                                    <img src="/static/icons/like.svg" alt="Like" width="20" height="20"> 
+                                                    <span>{{ reply.likes|default:"0" }}</span>
+                                                </button>
                                                 <button class="qa-reply-to-reply-btn" data-comment-id="{{ comment.id }}" data-username="{{ reply.user_id }}">Ответить</button>
                                             </div>
                                         </div>
@@ -694,6 +700,142 @@
     background: rgba(255, 255, 255, 0.1);
     box-shadow: none;
 }
+
+.user-mention {
+    background-color: rgba(37, 39, 159, 0.2);
+    color: #4a5bcc;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-weight: 500;
+    font-size: 0.9em;
+    border: 1px solid rgba(37, 39, 159, 0.3);
+    transition: all 0.2s ease;
+}
+
+.dark-theme .user-mention {
+    background-color: rgba(102, 126, 234, 0.2);
+    color: #8fa3f0;
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.user-mention:hover {
+    background-color: rgba(37, 39, 159, 0.3);
+    transform: translateY(-1px);
+}
+
+.dark-theme .user-mention:hover {
+    background-color: rgba(102, 126, 234, 0.3);
+}
+
+/* Стили для лайков комментариев */
+.qa-like {
+    background: none;
+    border: none;
+    color: var(--gray-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.qa-like:hover {
+    background-color: rgba(37, 39, 159, 0.1);
+    color: var(--accent-color);
+}
+
+.qa-like.liked {
+    color: var(--accent-color);
+    background-color: rgba(37, 39, 159, 0.1);
+}
+
+.qa-like img {
+    filter: currentColor;
+    transition: filter 0.2s ease;
+}
+
+.qa-like.liked img {
+    filter: invert(27%) sepia(95%) saturate(1234%) hue-rotate(220deg) brightness(94%) contrast(88%);
+}
+
+/* Стили для статус сообщений */
+.status-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+}
+
+.status-success {
+    background-color: #4CAF50;
+}
+
+.status-error {
+    background-color: #f44336;
+}
+
+.status-info {
+    background-color: var(--accent-color);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Стили для модального окна входа */
+.login-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.login-modal-content {
+    background-color: var(--light-bg);
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.dark-theme .login-modal-content {
+    background-color: var(--medium-bg);
+}
+
+.login-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--gray-color);
+    cursor: pointer;
+}
 </style>
 {% endblock %}
 
@@ -702,8 +844,104 @@
 <script src="{% static 'js/quality-change.js' %}"></script>
 <script src="{% static 'js/qa-comments.js' %}"></script>
 <script src="{% static 'js/video-sharing.js' %}"></script>
+<script src="{% static 'js/video-notes.js' %}"></script> 
 <script>
+
+window.isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+window.videoUserId = "{{ video.user_id }}";
+window.csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+function getUrlParameter(name) {
+    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+    var results = regex.exec(location.search);
+    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+}
+
+// Функция для установки времени видео
+function setVideoTime(timeInSeconds) {
+    const videoPlayer = document.getElementById('video-player');
+    if (videoPlayer && !isNaN(timeInSeconds) && timeInSeconds >= 0) {
+        // Ждем, пока видео будет готово к воспроизведению
+        const setTime = () => {
+            if (videoPlayer.readyState >= 2) { // HAVE_CURRENT_DATA
+                videoPlayer.currentTime = timeInSeconds;
+                console.log('Video time set to:', timeInSeconds);
+                
+                // Добавляем визуальную подсветку
+                const timestampElement = document.createElement('div');
+                timestampElement.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: var(--accent-color);
+                    color: white;
+                    padding: 10px 15px;
+                    border-radius: 8px;
+                    z-index: 1000;
+                    animation: fadeInOut 3s ease-in-out forwards;
+                    font-weight: bold;
+                `;
+                timestampElement.textContent = `Переход к ${formatTime(timeInSeconds)}`;
+                document.body.appendChild(timestampElement);
+                
+                // Добавляем CSS для анимации
+                if (!document.getElementById('timestamp-notification-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'timestamp-notification-style';
+                    style.textContent = `
+                        @keyframes fadeInOut {
+                            0% { opacity: 0; transform: translateX(100%); }
+                            15% { opacity: 1; transform: translateX(0); }
+                            85% { opacity: 1; transform: translateX(0); }
+                            100% { opacity: 0; transform: translateX(100%); }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+                
+                setTimeout(() => {
+                    if (timestampElement.parentNode) {
+                        timestampElement.remove();
+                    }
+                }, 3000);
+            } else {
+                setTimeout(setTime, 100);
+            }
+        };
+        
+        if (videoPlayer.readyState >= 2) {
+            setTime();
+        } else {
+            videoPlayer.addEventListener('loadeddata', setTime, { once: true });
+        }
+    }
+}
+
+// Функция для форматирования времени
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hours > 0) {
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    } else {
+        return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+
+    const timeParam = getUrlParameter('t');
+    if (timeParam) {
+        const timeInSeconds = parseInt(timeParam);
+        if (!isNaN(timeInSeconds)) {
+            console.log('Time parameter found:', timeInSeconds);
+            setVideoTime(timeInSeconds);
+        }
+    }
+
     const likeButton = document.getElementById('likeButton');
     const dislikeButton = document.getElementById('dislikeButton');
     const likeCount = document.getElementById('likeCount');
